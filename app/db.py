@@ -1,6 +1,7 @@
 """SQLite storage for members, orders and comments."""
 import logging
 import os
+import re
 import secrets
 import sqlite3
 from contextlib import contextmanager
@@ -119,6 +120,25 @@ ORDER_COLUMNS = {
 }
 
 
+MEMBER_COLUMNS = {
+    "email_key": "TEXT",   # email in a standard form, so tricks like dots or +tags count as the same address
+    "phone_key": "TEXT",   # last 10 digits of the mobile number
+}
+
+
+def email_key(email: str) -> str:
+    """john.smith+tarot@gmail.com and johnsmith@gmail.com are the same inbox, so they get the same key."""
+    local, _, domain = email.strip().lower().partition("@")
+    local = local.split("+", 1)[0]
+    if domain in ("gmail.com", "googlemail.com"):
+        local, domain = local.replace(".", ""), "gmail.com"
+    return f"{local}@{domain}"
+
+
+def phone_key(phone: str) -> str:
+    return re.sub(r"\D", "", phone)[-10:]
+
+
 def init():
     with conn() as c:
         c.executescript(SCHEMA)
@@ -129,6 +149,15 @@ def init():
         for row in c.execute("SELECT id FROM orders WHERE token IS NULL").fetchall():
             c.execute("UPDATE orders SET token=? WHERE id=?", (new_token(), row["id"]))
         c.execute("CREATE UNIQUE INDEX IF NOT EXISTS orders_token ON orders(token)")
+        have = {r["name"] for r in c.execute("PRAGMA table_info(members)")}
+        for col, kind in MEMBER_COLUMNS.items():
+            if col not in have:
+                c.execute(f"ALTER TABLE members ADD COLUMN {col} {kind}")
+        for row in c.execute("SELECT id, email, phone FROM members WHERE email_key IS NULL OR phone_key IS NULL").fetchall():
+            c.execute("UPDATE members SET email_key=?, phone_key=? WHERE id=?",
+                      (email_key(row["email"]), phone_key(row["phone"]), row["id"]))
+        c.execute("CREATE INDEX IF NOT EXISTS members_email_key ON members(email_key)")
+        c.execute("CREATE INDEX IF NOT EXISTS members_phone_key ON members(phone_key)")
 
 
 def new_code(c) -> str:

@@ -565,3 +565,4 @@ h1, h2 { letter-spacing: 0.015em; text-shadow: 0 0 40px rgba(248, 215, 148, 0.12
 .checklist li { padding: 3px 0; }
 .checklist li.ok { color: var(--olive); }
 .checklist li.bad { color: #e8a39a; }
+.bad-note { color: #e8a39a; }

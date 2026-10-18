@@ -367,20 +367,20 @@ def join_submit(request: Request, name: str = Form(""), email: str = Form(""), p
     if too_many(request, "join", 5, 3600):
         return fail("Too many sign-ups from here. Please try again later.")
     with db.conn() as c:
-        digits = re.sub(r"\D", "", form["phone"])[-10:]
-        dup = c.execute("SELECT referral_code FROM members WHERE email=? OR substr(replace(replace(replace(phone,' ',''),'-',''),'+',''), -10)=?",
-                        (form["email"], digits)).fetchone()
+        ekey, pkey = db.email_key(form["email"]), db.phone_key(form["phone"])
+        # One person, one free reading: an email or mobile number can only ever belong to one member.
+        dup = c.execute("SELECT referral_code FROM members WHERE email_key=? OR phone_key=?", (ekey, pkey)).fetchone()
         if dup:
-            return fail("You've already joined, so your free first reading is on its way. Your referral code is "
-                        f"{dup['referral_code']}.")
+            return fail("This email or mobile number is already registered, and the free first reading is "
+                        "once per person. You can still book a reading any time.")
         referrer = None
         if form["ref"]:
             referrer = c.execute("SELECT id, referral_code FROM members WHERE referral_code=?", (form["ref"],)).fetchone()
         code = db.new_code(c)
-        c.execute("""INSERT INTO members(name, email, phone, birthday, referral_code, referred_by, free_question)
-                     VALUES (?,?,?,?,?,?,?)""",
-                  (form["name"], form["email"], form["phone"], form["birthday"], code,
-                   referrer["referral_code"] if referrer else None, form["question"] or None))
+        c.execute("""INSERT INTO members(name, email, phone, birthday, referral_code, referred_by, free_question,
+                                         email_key, phone_key) VALUES (?,?,?,?,?,?,?,?,?)""",
+                  (form["name"], form["email"], form["phone"], form["birthday"], code, 
+                   referrer["referral_code"] if referrer else None, form["question"] or None, ekey, pkey))
         if referrer:
             c.execute("UPDATE members SET referral_credits = referral_credits + 1 WHERE id=?", (referrer["id"],))
     share = f"{settings.SITE_URL}/r/{code}"
@@ -500,6 +500,21 @@ def admin(request: Request):
     return render(request, "admin.html", **admin_context())
 
 
+def lookalikes(members) -> dict:
+    """Members who share a birthday and first name with someone else: maybe the same person with a new email."""
+    groups = {}
+    for m in members:
+        first = (m["name"].split() or [""])[0].lower()
+        groups.setdefault((m["birthday"], first), []).append(m)
+    notes = {}
+    for group in groups.values():
+        if len(group) > 1:
+            for m in group:
+                others = ", ".join(o["name"] for o in group if o["id"] != m["id"])
+                notes[m["id"]] = f"Same birthday and first name as {others}"
+    return notes
+
+
 def admin_context(pay_checks=None, pay_made=None) -> dict:
     with db.conn() as c:
         members = c.execute("SELECT * FROM members ORDER BY id DESC LIMIT 500").fetchall()
@@ -511,7 +526,7 @@ def admin_context(pay_checks=None, pay_made=None) -> dict:
         today = datetime.date.today()
         bdays = sorted([m for m in c.execute("SELECT * FROM members").fetchall()
                         if m["birthday"][5:7] == f"{today.month:02d}"], key=lambda m: m["birthday"][8:10])
-    return dict(members=members, orders=orders, comments=comments, birthdays=bdays, reviews=reviews,
+    return dict(members=members, lookalikes=lookalikes(members), orders=orders, comments=comments, birthdays=bdays, reviews=reviews,
                 month=today.strftime("%B"), today_day=f"{today.day:02d}",
                 pay_setup=payment_setup(), pay_checks=pay_checks, pay_error=dodo.last_error,
                 pay_products=dodo.products_status(), pay_made=pay_made)
