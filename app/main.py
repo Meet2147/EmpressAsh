@@ -1,6 +1,7 @@
 """EmpressAsh web app."""
 import csv
 import datetime
+import hashlib
 import hmac
 import io
 import logging
@@ -18,6 +19,7 @@ from fastapi.templating import Jinja2Templates
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 
 from . import catalog, db, dodo, geo, settings, tarot
+from .security import SecurityHeaders, looks_abusive, safe_markdown
 
 log = logging.getLogger("empressash")
 logging.basicConfig(level=logging.INFO)
@@ -26,6 +28,7 @@ HERE = os.path.dirname(__file__)
 STORIES_DIR = os.path.join(os.path.dirname(HERE), "content", "stories")
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+app.add_middleware(SecurityHeaders)
 app.mount("/static", StaticFiles(directory=os.path.join(HERE, "static")), name="static")
 templates = Jinja2Templates(directory=os.path.join(HERE, "templates"))
 signer = URLSafeTimedSerializer(settings.SECRET_KEY, salt="admin")
@@ -48,18 +51,18 @@ def render(request: Request, template: str, status: int = 200, **ctx):
         catalog=catalog,
         geo_currency=geo.currency(request),
         nav_page=ctx.get("nav_page", ""),
+        nonce=getattr(request.state, "nonce", ""),
         year=datetime.date.today().year,
     )
     return templates.TemplateResponse(request, template, ctx, status_code=status)
 
 
 _hits: dict = defaultdict(deque)
+_last_sweep = [0.0]
 
 
-def too_many(request: Request, bucket: str, limit: int, per_seconds: int) -> bool:
-    """Small in-memory rate limit per visitor IP."""
-    ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "?").split(",")[0].strip()
-    q = _hits[(bucket, ip)]
+def _hit(key, limit: int, per_seconds: int) -> bool:
+    q = _hits[key]
     now = time.time()
     while q and q[0] < now - per_seconds:
         q.popleft()
@@ -67,6 +70,24 @@ def too_many(request: Request, bucket: str, limit: int, per_seconds: int) -> boo
         return True
     q.append(now)
     return False
+
+
+def too_many(request: Request, bucket: str, limit: int, per_seconds: int, site_limit: int = 0) -> bool:
+    """Small in-memory rate limit per visitor IP, plus an optional limit for the whole site.
+
+    The IP comes from the proxy's forwarding header, which a visitor can fake to look like many
+    people. The site-wide limit can't be dodged that way, so sensitive forms use both.
+    """
+    now = time.time()
+    if now - _last_sweep[0] > 600 or len(_hits) > 20000:
+        # Forget visitors with no recent hits so the table can't grow without end.
+        for k in [k for k, q in _hits.items() if not q or q[-1] < now - 3600]:
+            del _hits[k]
+        _last_sweep[0] = now
+    ip = request.client.host if request.client else "?"
+    if site_limit and _hit((bucket, "*site*"), site_limit, per_seconds):
+        return True
+    return _hit((bucket, ip), limit, per_seconds)
 
 
 def clean(v: str, n: int) -> str:
@@ -94,10 +115,12 @@ def add_comment(request: Request, page: str, name: str, body: str, website: str)
     name, body = clean(name, 60), clean(body, 1000)
     if not name or not body:
         return "Please add your name and a comment."
-    if too_many(request, "comment", 5, 600):
+    if too_many(request, "comment", 5, 600, site_limit=120):
         return "You've commented a lot just now. Please try again in a few minutes."
+    # Comments with hateful or sexual words wait, hidden, until Ash looks at them in the admin.
+    held = 1 if looks_abusive(name, body) else 0
     with db.conn() as c:
-        c.execute("INSERT INTO comments(page, name, body) VALUES (?,?,?)", (page, name, body))
+        c.execute("INSERT INTO comments(page, name, body, hidden) VALUES (?,?,?,?)", (page, name, body, held))
     return None
 
 
@@ -121,7 +144,7 @@ def load_stories():
             "date": meta.get("date", ""),
             "summary": meta.get("summary", ""),
             "draft": meta.get("draft", "").lower() == "true",
-            "html": md.markdown(body.strip(), extensions=["extra"]),
+            "html": safe_markdown(body.strip()),
         })
     return sorted([s for s in stories if not s["draft"]], key=lambda s: s["date"], reverse=True)
 
@@ -177,7 +200,8 @@ def checkout_form(request: Request, slug: str, format: str = "written", currency
 @app.post("/checkout/{slug}", response_class=HTMLResponse)
 def checkout_submit(request: Request, slug: str, format: str = Form(...), currency: str = Form("usd"),
                     name: str = Form(""), email: str = Form(""), phone: str = Form(""),
-                    birthday: str = Form(""), question: str = Form(""), agree: str = Form("")):
+                    birthday: str = Form(""), question: str = Form(""), agree: str = Form(""),
+                    conduct: str = Form("")):
     r = catalog.BY_ID.get(slug)
     f = catalog.format_by_id(format)
     if not r or not f:
@@ -203,9 +227,14 @@ def checkout_submit(request: Request, slug: str, format: str = Form(...), curren
         return fail("Please write the question you'd like Ash to read on.")
     if agree != "yes":
         return fail("Please confirm you've read the policies.")
+    if f["live"] and conduct != "yes":
+        return fail("Please agree to the conduct rules for live sessions.")
+    with db.conn() as c:
+        if db.is_blocked(c, form["email"], form["phone"]):
+            return fail("We can't take a booking for these details. Please contact Ash if you think this is a mistake.")
     if not dodo.can_sell(r["id"], f["id"], currency, amount):
         return fail("Online booking opens very soon. Please check back shortly.")
-    if too_many(request, "checkout", 10, 600):
+    if too_many(request, "checkout", 10, 600, site_limit=200):
         return fail("Too many attempts. Please wait a few minutes and try again.")
 
     order_id, token = db.new_order_id(), db.new_token()
@@ -247,11 +276,10 @@ def cal_path() -> str:
 
 
 @app.get("/thank-you")
-def thank_you(order: str = ""):
-    # Older payment links point here; the reading room replaced this page.
-    with db.conn() as c:
-        o = c.execute("SELECT token FROM orders WHERE id=?", (order,)).fetchone()
-    return RedirectResponse(f"/room/{o['token']}" if o else "/readings", status_code=303)
+def thank_you():
+    # Older payment links pointed here. The order reference is shown to clients and sent to Dodo,
+    # so it must not open anyone's reading room; rooms are reached only by their private link.
+    return RedirectResponse("/my-readings", status_code=303)
 
 
 # ---------- the client's private reading room ----------
@@ -265,15 +293,16 @@ def order_by_token(token: str):
 
 def room_messages(order_id: str):
     with db.conn() as c:
-        return c.execute("SELECT sender, body, created_at FROM messages WHERE order_id=? ORDER BY id", (order_id,)).fetchall()
+        return c.execute("SELECT sender, body, created_at, flagged FROM messages WHERE order_id=? ORDER BY id",
+                         (order_id,)).fetchall()
 
 
-def render_room(request: Request, o, error=None, status=200):
+def render_room(request: Request, o, error=None, status=200, reported=False):
     o = refresh_payment(o)
-    reading_html = md.markdown(o["reading_text"], extensions=["extra", "nl2br"]) if o["reading_text"] else ""
+    reading_html = safe_markdown(o["reading_text"], ("extra", "nl2br")) if o["reading_text"] else ""
     return render(request, "room.html", o=o, r=catalog.BY_ID.get(o["reading"]), f=catalog.format_by_id(o["format"]),
                   reading_html=reading_html, messages=room_messages(o["id"]), error=error, cal_path=cal_path(),
-                  status=status)
+                  reported=reported, status=status)
 
 
 @app.get("/room/{token}", response_class=HTMLResponse)
@@ -281,7 +310,7 @@ def room(request: Request, token: str):
     o = order_by_token(token)
     if not o:
         return render(request, "404.html", status=404)
-    resp = render_room(request, o)
+    resp = render_room(request, o, reported=request.query_params.get("reported") == "1")
     resp.headers["Referrer-Policy"] = "no-referrer"
     resp.headers["X-Robots-Tag"] = "noindex"
     return resp
@@ -299,11 +328,33 @@ def room_message(request: Request, token: str, body: str = Form(""), website: st
         return render_room(request, o, error="You can message Ash once your payment is confirmed.", status=400)
     if not body:
         return render_room(request, o, error="Please write a message first.", status=400)
-    if too_many(request, "message", 10, 3600):
+    if too_many(request, "message", 10, 3600, site_limit=300):
         return render_room(request, o, error="You've sent several messages just now. Ash will reply soon.", status=429)
     with db.conn() as c:
-        c.execute("INSERT INTO messages(order_id, sender, body) VALUES (?,?,?)", (o["id"], "client", body))
+        if db.is_blocked(c, o["email"], o["phone"]):
+            return render_room(request, o, error="Messaging is closed for this reading.", status=403)
+        c.execute("INSERT INTO messages(order_id, sender, body, flagged) VALUES (?,?,?,?)",
+                  (o["id"], "client", body, 1 if looks_abusive(body) else 0))
     return RedirectResponse(f"/room/{token}#messages", status_code=303)
+
+
+@app.post("/room/{token}/report", response_class=HTMLResponse)
+def room_report(request: Request, token: str, body: str = Form(""), website: str = Form("")):
+    """The client tells Ash about a problem, for example something said or shown on a call."""
+    o = order_by_token(token)
+    if not o:
+        return render(request, "404.html", status=404)
+    body = clean(body, 2000)
+    if website or o["status"] not in ("paid", "delivered"):
+        return RedirectResponse(f"/room/{token}", status_code=303)
+    if not body:
+        return render_room(request, o, error="Please tell us what happened.", status=400)
+    if too_many(request, "report", 5, 3600, site_limit=100):
+        return render_room(request, o, error="Thank you, your report has reached Ash.", status=429)
+    with db.conn() as c:
+        c.execute("INSERT INTO reports(order_id, body) VALUES (?,?)", (o["id"], body))
+    log.warning("Report filed for order %s", o["id"])
+    return RedirectResponse(f"/room/{token}?reported=1#report", status_code=303)
 
 
 @app.get("/my-readings", response_class=HTMLResponse)
@@ -321,16 +372,32 @@ async def dodo_webhook(request: Request):
         return PlainTextResponse("invalid signature", status_code=401)
     etype = event.get("type", "")
     data = event.get("data") or {}
-    order_id = (data.get("metadata") or {}).get("order_id")
-    if order_id and etype in {"payment.succeeded", "payment.failed", "payment.cancelled"}:
-        new = {"payment.succeeded": "paid", "payment.failed": "failed", "payment.cancelled": "cancelled"}[etype]
-        with db.conn() as c:
-            if new == "paid":
-                c.execute("UPDATE orders SET status='paid', paid_at=datetime('now'), dodo_payment=? WHERE id=?",
-                          (data.get("payment_id"), order_id))
+    order_id = str((data.get("metadata") or {}).get("order_id") or "")[:40]
+    payment_id = data.get("payment_id")
+    with db.conn() as c:
+        if order_id and etype == "payment.succeeded":
+            o = c.execute("SELECT * FROM orders WHERE id=?", (order_id,)).fetchone()
+            if not o:
+                log.warning("Payment %s names unknown order %s", payment_id, order_id)
+                return {"ok": True}
+            ok, why = dodo.paid_enough(data, o)
+            if ok:
+                # Only unpaid orders move to paid, so a repeated webhook can't undo "delivered".
+                c.execute("""UPDATE orders SET status='paid', paid_at=datetime('now'), dodo_payment=?, pay_note=NULL
+                             WHERE id=? AND status IN ('pending','failed','cancelled','review')""", (payment_id, order_id))
+                log.info("Order %s -> paid", order_id)
             else:
-                c.execute("UPDATE orders SET status=? WHERE id=? AND status='pending'", (new, order_id))
-        log.info("Order %s -> %s", order_id, new)
+                c.execute("UPDATE orders SET status='review', dodo_payment=?, pay_note=? WHERE id=? AND status IN "
+                          "('pending','failed','cancelled')", (payment_id, why, order_id))
+                log.warning("Order %s held for review: %s (payment %s)", order_id, why, payment_id)
+        elif order_id and etype in {"payment.failed", "payment.cancelled"}:
+            new = "failed" if etype == "payment.failed" else "cancelled"
+            c.execute("UPDATE orders SET status=? WHERE id=? AND status='pending'", (new, order_id))
+            log.info("Order %s -> %s", order_id, new)
+        elif payment_id and (etype == "refund.succeeded" or etype in {"dispute.opened", "dispute.lost"}):
+            new = "refunded" if etype == "refund.succeeded" else "disputed"
+            c.execute("UPDATE orders SET status=? WHERE dodo_payment=?", (new, payment_id))
+            log.warning("Payment %s -> %s", payment_id, new)
     return {"ok": True}
 
 
@@ -364,10 +431,12 @@ def join_submit(request: Request, name: str = Form(""), email: str = Form(""), p
         return fail("Please enter your date of birth. Ash only reads for adults 18 and over.")
     if agree != "yes":
         return fail("Please agree to receive messages from Ash so she can send your reading.")
-    if too_many(request, "join", 5, 3600):
+    if too_many(request, "join", 5, 3600, site_limit=300):
         return fail("Too many sign-ups from here. Please try again later.")
     with db.conn() as c:
         ekey, pkey = db.email_key(form["email"]), db.phone_key(form["phone"])
+        if db.is_blocked(c, form["email"], form["phone"]):
+            return fail("We can't register these details. Please contact Ash if you think this is a mistake.")
         # One person, one free reading: an email or mobile number can only ever belong to one member.
         dup = c.execute("SELECT referral_code FROM members WHERE email_key=? OR phone_key=?", (ekey, pkey)).fetchone()
         if dup:
@@ -446,7 +515,7 @@ def review_submit(request: Request, name: str = Form(""), reading: str = Form(""
         err = "Please add your name and a few words about your reading."
     elif not consent:
         err = "Please tick the box so Ash may publish your words."
-    elif too_many(request, "review", 3, 3600):
+    elif too_many(request, "review", 3, 3600, site_limit=100):
         err = "Thank you, we already have your review. Please try again later."
     if err:
         return render(request, "reviews.html", nav_page="reviews", reviews=approved_reviews(), error=err, sent=False,
@@ -483,12 +552,17 @@ def story_comment(request: Request, slug: str, name: str = Form(""), body: str =
 
 # ---------- admin ----------
 
+def admin_stamp() -> str:
+    """Changes whenever the admin password changes, so changing it signs out every browser."""
+    return "admin:" + hashlib.sha256(("ea-admin|" + settings.ADMIN_PASSWORD).encode()).hexdigest()[:24]
+
+
 def is_admin(request: Request) -> bool:
     tok = request.cookies.get("ea_admin")
     if not tok or not settings.ADMIN_PASSWORD:
         return False
     try:
-        return signer.loads(tok, max_age=60 * 60 * 24 * 7) == "admin"
+        return hmac.compare_digest(str(signer.loads(tok, max_age=60 * 60 * 24 * 7)), admin_stamp())
     except BadSignature:
         return False
 
@@ -523,10 +597,15 @@ def admin_context(pay_checks=None, pay_made=None) -> dict:
                                   AS waiting FROM orders o ORDER BY created_at DESC LIMIT 500""").fetchall()
         comments = c.execute("SELECT * FROM comments ORDER BY id DESC LIMIT 200").fetchall()
         reviews = c.execute("SELECT * FROM reviews ORDER BY approved, id DESC LIMIT 200").fetchall()
+        reports = c.execute("""SELECT r.*, o.name, o.token FROM reports r LEFT JOIN orders o ON o.id=r.order_id
+                               ORDER BY r.resolved, r.id DESC LIMIT 200""").fetchall()
+        blocked = c.execute("SELECT * FROM blocked ORDER BY id DESC").fetchall()
         today = datetime.date.today()
         bdays = sorted([m for m in c.execute("SELECT * FROM members").fetchall()
                         if m["birthday"][5:7] == f"{today.month:02d}"], key=lambda m: m["birthday"][8:10])
     return dict(members=members, lookalikes=lookalikes(members), orders=orders, comments=comments, birthdays=bdays, reviews=reviews,
+                reports=reports, blocked=blocked,
+                weak_password=len(settings.ADMIN_PASSWORD) < settings.ADMIN_PASSWORD_MIN,
                 month=today.strftime("%B"), today_day=f"{today.day:02d}",
                 pay_setup=payment_setup(), pay_checks=pay_checks, pay_error=dodo.last_error,
                 pay_products=dodo.products_status(), pay_made=pay_made)
@@ -565,12 +644,14 @@ def admin_payments_check(request: Request):
 
 @app.post("/admin/login", response_class=HTMLResponse)
 def admin_login(request: Request, password: str = Form("")):
-    if too_many(request, "login", 8, 900):
+    # Per visitor, and for the whole site so guessing from many faked addresses is slow too.
+    if too_many(request, "login", 8, 900, site_limit=40):
         return render(request, "admin_login.html", error="Too many attempts. Wait 15 minutes.", status=429)
-    if not settings.ADMIN_PASSWORD or not hmac.compare_digest(password, settings.ADMIN_PASSWORD):
+    if not settings.ADMIN_PASSWORD or not hmac.compare_digest(password.encode(), settings.ADMIN_PASSWORD.encode()):
+        log.warning("Failed admin login from %s", request.client.host if request.client else "?")
         return render(request, "admin_login.html", error="Wrong password.", status=401)
     resp = RedirectResponse("/admin", status_code=303)
-    resp.set_cookie("ea_admin", signer.dumps("admin"), httponly=True, samesite="strict",
+    resp.set_cookie("ea_admin", signer.dumps(admin_stamp()), httponly=True, samesite="strict",
                     secure=settings.SITE_URL.startswith("https"), max_age=60 * 60 * 24 * 7)
     return resp
 
@@ -578,7 +659,7 @@ def admin_login(request: Request, password: str = Form("")):
 @app.post("/admin/logout")
 def admin_logout():
     resp = RedirectResponse("/admin", status_code=303)
-    resp.delete_cookie("ea_admin")
+    resp.delete_cookie("ea_admin", samesite="strict", secure=settings.SITE_URL.startswith("https"), httponly=True)
     return resp
 
 
@@ -626,8 +707,53 @@ def admin_order(request: Request, oid: str, saved: int = 0):
         o = c.execute("SELECT * FROM orders WHERE id=?", (oid,)).fetchone()
     if not o:
         return render(request, "404.html", status=404)
+    with db.conn() as c:
+        reports = c.execute("SELECT * FROM reports WHERE order_id=? ORDER BY id DESC", (oid,)).fetchall()
+        blocked = db.is_blocked(c, o["email"], o["phone"])
     return render(request, "admin_order.html", o=o, r=catalog.BY_ID.get(o["reading"]), f=catalog.format_by_id(o["format"]),
-                  messages=room_messages(oid), saved=bool(saved))
+                  messages=room_messages(oid), saved=bool(saved), reports=reports, blocked=blocked)
+
+
+@app.post("/admin/orders/{oid}/confirm-payment")
+def admin_confirm_payment(request: Request, oid: str):
+    """For a payment held for checking: Ash has looked in Dodo and it's right."""
+    if not is_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    with db.conn() as c:
+        c.execute("UPDATE orders SET status='paid', paid_at=COALESCE(paid_at, datetime('now')), pay_note=NULL "
+                  "WHERE id=? AND status='review'", (oid,))
+    return RedirectResponse(f"/admin/orders/{oid}", status_code=303)
+
+
+@app.post("/admin/orders/{oid}/block")
+def admin_block(request: Request, oid: str, reason: str = Form("")):
+    """Blocks this client from booking, joining or messaging again (by email and mobile)."""
+    if not is_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    with db.conn() as c:
+        o = c.execute("SELECT * FROM orders WHERE id=?", (oid,)).fetchone()
+        if o and not db.is_blocked(c, o["email"], o["phone"]):
+            c.execute("INSERT INTO blocked(email_key, phone_key, name, reason) VALUES (?,?,?,?)",
+                      (db.email_key(o["email"]), db.phone_key(o["phone"]), o["name"], clean(reason, 300)))
+    return RedirectResponse(f"/admin/orders/{oid}", status_code=303)
+
+
+@app.post("/admin/blocked/{bid}/remove")
+def admin_unblock(request: Request, bid: int):
+    if not is_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    with db.conn() as c:
+        c.execute("DELETE FROM blocked WHERE id=?", (bid,))
+    return RedirectResponse("/admin#safety", status_code=303)
+
+
+@app.post("/admin/reports/{rid}/resolve")
+def admin_resolve_report(request: Request, rid: int):
+    if not is_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    with db.conn() as c:
+        c.execute("UPDATE reports SET resolved = 1 - resolved WHERE id=?", (rid,))
+    return RedirectResponse("/admin#safety", status_code=303)
 
 
 @app.post("/admin/orders/{oid}/reading")
@@ -637,7 +763,7 @@ def admin_order_save(request: Request, oid: str, progress: str = Form("received"
         return RedirectResponse("/admin", status_code=303)
     progress = progress if progress in ("received", "reading", "ready") else "received"
     media_url = media_url.strip()[:500]
-    if media_url and not media_url.startswith(("https://", "http://")):
+    if media_url and not media_url.startswith("https://"):
         media_url = ""
     with db.conn() as c:
         c.execute("""UPDATE orders SET progress=?, reading_text=?, media_url=?, updated_at=datetime('now'),

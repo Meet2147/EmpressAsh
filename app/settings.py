@@ -1,5 +1,6 @@
 """Site settings. Secrets come from environment variables set in Render, never from code."""
 import os
+import re
 import secrets
 
 
@@ -21,15 +22,18 @@ DATA_DIR = env("DATA_DIR", os.path.join(os.path.dirname(os.path.dirname(__file__
 # Signs the admin login cookie. Set a long random value in Render.
 SECRET_KEY = env("SECRET_KEY") or secrets.token_hex(32)
 ADMIN_PASSWORD = env("ADMIN_PASSWORD")
+# The admin shows a warning until the password is at least this long.
+ADMIN_PASSWORD_MIN = 12
 
 # Dodo Payments
 DODO_API_KEY = env("DODO_PAYMENTS_API_KEY")
 DODO_WEBHOOK_SECRET = env("DODO_PAYMENTS_WEBHOOK_KEY")
 DODO_MODE = env("DODO_PAYMENTS_MODE", "test_mode")  # test_mode or live_mode
-DODO_BASE_URL = env(
-    "DODO_PAYMENTS_BASE_URL",
-    "https://live.dodopayments.com" if DODO_MODE == "live_mode" else "https://test.dodopayments.com",
-)
+_DODO_DEFAULT = "https://live.dodopayments.com" if DODO_MODE == "live_mode" else "https://test.dodopayments.com"
+DODO_BASE_URL = env("DODO_PAYMENTS_BASE_URL", _DODO_DEFAULT).rstrip("/")
+# The API key is only ever sent to Dodo itself over https. A changed setting can't redirect it elsewhere.
+if not re.match(r"^https://([a-z0-9-]+\.)*dodopayments\.com$", DODO_BASE_URL):
+    DODO_BASE_URL = _DODO_DEFAULT
 # One "pay what you want" product per currency. The server sets the exact price
 # for each reading, so Ash never has to create 90 products.
 DODO_PRODUCT_INR = env("DODO_PRODUCT_INR")

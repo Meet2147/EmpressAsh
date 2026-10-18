@@ -72,6 +72,23 @@ CREATE TABLE IF NOT EXISTS dodo_products (
     product_id TEXT NOT NULL,
     PRIMARY KEY (mode, reading, format, currency)
 );
+-- Problems clients report from their reading room (for example, behaviour on a call).
+CREATE TABLE IF NOT EXISTS reports (
+    id INTEGER PRIMARY KEY,
+    order_id TEXT NOT NULL,
+    body TEXT NOT NULL,
+    resolved INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+-- People Ash has blocked for breaking the conduct rules, matched by email and mobile.
+CREATE TABLE IF NOT EXISTS blocked (
+    id INTEGER PRIMARY KEY,
+    email_key TEXT,
+    phone_key TEXT,
+    name TEXT,
+    reason TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE INDEX IF NOT EXISTS messages_order ON messages(order_id, id);
 CREATE INDEX IF NOT EXISTS comments_page ON comments(page, hidden);
 """
@@ -117,6 +134,11 @@ ORDER_COLUMNS = {
     "reading_text": "TEXT",     # Ash's written reading (Markdown)
     "media_url": "TEXT",        # optional voice or video link
     "updated_at": "TEXT",
+    "pay_note": "TEXT",         # why a payment is held for Ash to check
+}
+
+MESSAGE_COLUMNS = {
+    "flagged": "INTEGER NOT NULL DEFAULT 0",  # contains words from the abuse list
 }
 
 
@@ -156,8 +178,17 @@ def init():
         for row in c.execute("SELECT id, email, phone FROM members WHERE email_key IS NULL OR phone_key IS NULL").fetchall():
             c.execute("UPDATE members SET email_key=?, phone_key=? WHERE id=?",
                       (email_key(row["email"]), phone_key(row["phone"]), row["id"]))
+        have = {r["name"] for r in c.execute("PRAGMA table_info(messages)")}
+        for col, kind in MESSAGE_COLUMNS.items():
+            if col not in have:
+                c.execute(f"ALTER TABLE messages ADD COLUMN {col} {kind}")
         c.execute("CREATE INDEX IF NOT EXISTS members_email_key ON members(email_key)")
         c.execute("CREATE INDEX IF NOT EXISTS members_phone_key ON members(phone_key)")
+
+
+def is_blocked(c, email: str, phone: str) -> bool:
+    return bool(c.execute("SELECT 1 FROM blocked WHERE email_key=? OR phone_key=?",
+                          (email_key(email), phone_key(phone))).fetchone())
 
 
 def new_code(c) -> str:

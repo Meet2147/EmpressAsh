@@ -9,7 +9,7 @@
 <meta property="og:description" content="{{ self.description() }}">
 <meta name="theme-color" content="#111A19">
 <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
-<script>
+<script nonce="{{ nonce }}">
   // Currency comes from the visitor's location: INR in India, USD elsewhere.
   // The server knows the location; the time zone is only a fallback when it doesn't.
   (function () {
