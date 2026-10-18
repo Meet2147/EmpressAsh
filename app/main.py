@@ -202,20 +202,21 @@ def checkout_submit(request: Request, slug: str, format: str = Form(...), curren
     if agree != "yes":
         return fail("Please confirm you've read the policies.")
     if not settings.payments_ready():
-        return fail("Online payment is being set up. Please message Ash on WhatsApp or email to book for now.")
+        return fail("Online booking opens very soon. Please check back shortly.")
     if too_many(request, "checkout", 10, 600):
         return fail("Too many attempts. Please wait a few minutes and try again.")
 
-    order_id = db.new_order_id()
+    order_id, token = db.new_order_id(), db.new_token()
     with db.conn() as c:
-        c.execute("""INSERT INTO orders(id, reading, format, currency, amount, name, email, phone, birthday, question)
-                     VALUES (?,?,?,?,?,?,?,?,?,?)""",
-                  (order_id, r["id"], f["id"], currency, amount, form["name"], form["email"], form["phone"],
+        c.execute("""INSERT INTO orders(id, token, reading, format, currency, amount, name, email, phone, birthday, question)
+                     VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                  (order_id, token, r["id"], f["id"], currency, amount, form["name"], form["email"], form["phone"],
                    form["birthday"], form["question"]))
     try:
         session = dodo.create_checkout(order_id=order_id, product_name=f"{r['name']} · {f['label']}",
                                        amount_minor=amount * 100, currency=currency,
-                                       name=form["name"], email=form["email"], phone=form["phone"])
+                                       name=form["name"], email=form["email"], phone=form["phone"],
+                                       return_path=f"/room/{token}")
     except dodo.PaymentError as e:
         log.error("Checkout failed for %s: %s", order_id, e)
         with db.conn() as c:
@@ -226,22 +227,86 @@ def checkout_submit(request: Request, slug: str, format: str = Form(...), curren
     return RedirectResponse(session["checkout_url"], status_code=303)
 
 
-@app.get("/thank-you", response_class=HTMLResponse)
-def thank_you(request: Request, order: str = ""):
-    with db.conn() as c:
-        o = c.execute("SELECT * FROM orders WHERE id=?", (order,)).fetchone()
-    if not o:
-        return render(request, "404.html", status=404)
-    status = o["status"]
-    if status == "pending" and o["dodo_session"]:
-        # The webhook usually arrives first; this is a fallback check.
+def refresh_payment(o):
+    """The webhook usually marks orders paid first; this is a fallback check with Dodo."""
+    if o["status"] == "pending" and o["dodo_session"]:
         if dodo.session_status(o["dodo_session"]) == "succeeded":
             with db.conn() as c:
                 c.execute("UPDATE orders SET status='paid', paid_at=datetime('now') WHERE id=? AND status='pending'", (o["id"],))
-            status = "paid"
-    r = catalog.BY_ID.get(o["reading"])
-    f = catalog.format_by_id(o["format"])
-    return render(request, "thank_you.html", o=o, r=r, f=f, pay_status=status)
+                o = c.execute("SELECT * FROM orders WHERE id=?", (o["id"],)).fetchone()
+    return o
+
+
+def cal_path() -> str:
+    """'ash/reading' from a Cal.com link like https://cal.com/ash/reading, for the embedded calendar."""
+    link = settings.CAL_LINK.strip()
+    m = re.match(r"^https?://(?:app\.)?cal\.com/(.+?)/?$", link)
+    return m.group(1) if m else ""
+
+
+@app.get("/thank-you")
+def thank_you(order: str = ""):
+    # Older payment links point here; the reading room replaced this page.
+    with db.conn() as c:
+        o = c.execute("SELECT token FROM orders WHERE id=?", (order,)).fetchone()
+    return RedirectResponse(f"/room/{o['token']}" if o else "/readings", status_code=303)
+
+
+# ---------- the client's private reading room ----------
+
+def order_by_token(token: str):
+    if not token or len(token) > 64:
+        return None
+    with db.conn() as c:
+        return c.execute("SELECT * FROM orders WHERE token=?", (token,)).fetchone()
+
+
+def room_messages(order_id: str):
+    with db.conn() as c:
+        return c.execute("SELECT sender, body, created_at FROM messages WHERE order_id=? ORDER BY id", (order_id,)).fetchall()
+
+
+def render_room(request: Request, o, error=None, status=200):
+    o = refresh_payment(o)
+    reading_html = md.markdown(o["reading_text"], extensions=["extra", "nl2br"]) if o["reading_text"] else ""
+    return render(request, "room.html", o=o, r=catalog.BY_ID.get(o["reading"]), f=catalog.format_by_id(o["format"]),
+                  reading_html=reading_html, messages=room_messages(o["id"]), error=error, cal_path=cal_path(),
+                  status=status)
+
+
+@app.get("/room/{token}", response_class=HTMLResponse)
+def room(request: Request, token: str):
+    o = order_by_token(token)
+    if not o:
+        return render(request, "404.html", status=404)
+    resp = render_room(request, o)
+    resp.headers["Referrer-Policy"] = "no-referrer"
+    resp.headers["X-Robots-Tag"] = "noindex"
+    return resp
+
+
+@app.post("/room/{token}/message", response_class=HTMLResponse)
+def room_message(request: Request, token: str, body: str = Form(""), website: str = Form("")):
+    o = order_by_token(token)
+    if not o:
+        return render(request, "404.html", status=404)
+    body = clean(body, 2000)
+    if website:
+        return RedirectResponse(f"/room/{token}#messages", status_code=303)
+    if o["status"] not in ("paid", "delivered"):
+        return render_room(request, o, error="You can message Ash once your payment is confirmed.", status=400)
+    if not body:
+        return render_room(request, o, error="Please write a message first.", status=400)
+    if too_many(request, "message", 10, 3600):
+        return render_room(request, o, error="You've sent several messages just now. Ash will reply soon.", status=429)
+    with db.conn() as c:
+        c.execute("INSERT INTO messages(order_id, sender, body) VALUES (?,?,?)", (o["id"], "client", body))
+    return RedirectResponse(f"/room/{token}#messages", status_code=303)
+
+
+@app.get("/my-readings", response_class=HTMLResponse)
+def my_readings(request: Request):
+    return render(request, "my_readings.html")
 
 
 @app.post("/webhooks/dodo")
@@ -432,7 +497,9 @@ def admin(request: Request):
         return render(request, "admin_login.html", error=None)
     with db.conn() as c:
         members = c.execute("SELECT * FROM members ORDER BY id DESC LIMIT 500").fetchall()
-        orders = c.execute("SELECT * FROM orders ORDER BY created_at DESC LIMIT 500").fetchall()
+        orders = c.execute("""SELECT o.*, (SELECT COUNT(*) FROM messages m WHERE m.order_id=o.id AND m.sender='client'
+                                  AND m.id > COALESCE((SELECT MAX(id) FROM messages a WHERE a.order_id=o.id AND a.sender='ash'), 0))
+                                  AS waiting FROM orders o ORDER BY created_at DESC LIMIT 500""").fetchall()
         comments = c.execute("SELECT * FROM comments ORDER BY id DESC LIMIT 200").fetchall()
         reviews = c.execute("SELECT * FROM reviews ORDER BY approved, id DESC LIMIT 200").fetchall()
         today = datetime.date.today()
@@ -495,6 +562,46 @@ def admin_free_done(request: Request, mid: int):
     with db.conn() as c:
         c.execute("UPDATE members SET free_status = CASE free_status WHEN 'done' THEN 'requested' ELSE 'done' END WHERE id=?", (mid,))
     return RedirectResponse("/admin#members", status_code=303)
+
+
+@app.get("/admin/orders/{oid}", response_class=HTMLResponse)
+def admin_order(request: Request, oid: str, saved: int = 0):
+    if not is_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    with db.conn() as c:
+        o = c.execute("SELECT * FROM orders WHERE id=?", (oid,)).fetchone()
+    if not o:
+        return render(request, "404.html", status=404)
+    return render(request, "admin_order.html", o=o, r=catalog.BY_ID.get(o["reading"]), f=catalog.format_by_id(o["format"]),
+                  messages=room_messages(oid), saved=bool(saved))
+
+
+@app.post("/admin/orders/{oid}/reading")
+def admin_order_save(request: Request, oid: str, progress: str = Form("received"), reading_text: str = Form(""),
+                     media_url: str = Form("")):
+    if not is_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    progress = progress if progress in ("received", "reading", "ready") else "received"
+    media_url = media_url.strip()[:500]
+    if media_url and not media_url.startswith(("https://", "http://")):
+        media_url = ""
+    with db.conn() as c:
+        c.execute("""UPDATE orders SET progress=?, reading_text=?, media_url=?, updated_at=datetime('now'),
+                     status = CASE WHEN ?='ready' AND status='paid' THEN 'delivered'
+                                   WHEN ?!='ready' AND status='delivered' THEN 'paid' ELSE status END
+                     WHERE id=?""", (progress, reading_text.strip()[:20000], media_url, progress, progress, oid))
+    return RedirectResponse(f"/admin/orders/{oid}?saved=1", status_code=303)
+
+
+@app.post("/admin/orders/{oid}/message")
+def admin_order_message(request: Request, oid: str, body: str = Form("")):
+    if not is_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    body = clean(body, 2000)
+    if body:
+        with db.conn() as c:
+            c.execute("INSERT INTO messages(order_id, sender, body) VALUES (?,?,?)", (oid, "ash", body))
+    return RedirectResponse(f"/admin/orders/{oid}#messages", status_code=303)
 
 
 @app.post("/admin/orders/{oid}/done")

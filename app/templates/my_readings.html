@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}My readings · EmpressAsh{% endblock %}
+{% block content %}
+<section>
+  <div class="wrap prose">
+    <p class="eyebrow center">My readings</p>
+    <h1 class="page-title center">Your reading rooms</h1>
+    <p class="muted center">Readings you've booked on this device. Each opens your private room, with your reading and messages with Ash.</p>
+    <ul class="my-rooms" data-my-rooms></ul>
+    <p class="muted center" data-my-empty hidden>No readings saved on this device yet. If you booked on another phone or computer, open the link from there, or ask Ash through the <a href="/contact">contact page</a> and she'll send it again.</p>
+    <p class="center"><a class="btn btn-ghost" href="/readings">Book a reading</a></p>
+  </div>
+</section>
+{% endblock %}

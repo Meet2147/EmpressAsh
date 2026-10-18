@@ -197,6 +197,27 @@
     });
   });
 
+  /* ---------- Reading rooms remembered on this device ---------- */
+  var rooms = [];
+  try { rooms = JSON.parse(store("ea-rooms") || "[]"); } catch (e) { rooms = []; }
+  var room = $("[data-room]");
+  if (room) {
+    var tok = room.getAttribute("data-token");
+    rooms = rooms.filter(function (x) { return x.token !== tok; });
+    rooms.unshift({ token: tok, name: room.getAttribute("data-name"), date: room.getAttribute("data-date") });
+    store("ea-rooms", JSON.stringify(rooms.slice(0, 30)));
+  }
+  var list = $("[data-my-rooms]");
+  if (list) {
+    if (!rooms.length) $("[data-my-empty]").hidden = false;
+    rooms.forEach(function (x) {
+      var li = document.createElement("li"), a = document.createElement("a");
+      a.href = "/room/" + encodeURIComponent(x.token); a.className = "card plain";
+      a.textContent = x.name + " · " + x.date;
+      li.appendChild(a); list.appendChild(li);
+    });
+  }
+
   /* ---------- Share buttons ---------- */
   $all(".share-row").forEach(function (row) {
     var url = row.getAttribute("data-share-url");

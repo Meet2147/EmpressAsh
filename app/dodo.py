@@ -10,14 +10,14 @@ class PaymentError(Exception):
 
 
 def create_checkout(*, order_id: str, product_name: str, amount_minor: int, currency: str,
-                    name: str, email: str, phone: str) -> dict:
+                    name: str, email: str, phone: str, return_path: str) -> dict:
     """Returns {"session_id", "checkout_url"}. Amount is in paise or cents."""
     product_id = settings.DODO_PRODUCT_INR if currency == "inr" else settings.DODO_PRODUCT_USD
     body = {
         # A "pay what you want" product, so the server sets the exact price.
         "product_cart": [{"product_id": product_id, "quantity": 1, "amount": amount_minor}],
         "customer": {"name": name, "email": email, "phone_number": phone},
-        "return_url": f"{settings.SITE_URL}/thank-you?order={order_id}",
+        "return_url": f"{settings.SITE_URL}{return_path}",
         "cancel_url": f"{settings.SITE_URL}/readings",
         "metadata": {"order_id": order_id, "reading": product_name},
     }

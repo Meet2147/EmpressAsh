@@ -54,6 +54,14 @@ CREATE TABLE IF NOT EXISTS reviews (
     approved INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS messages (
+    id INTEGER PRIMARY KEY,
+    order_id TEXT NOT NULL,
+    sender TEXT NOT NULL,
+    body TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS messages_order ON messages(order_id, id);
 CREATE INDEX IF NOT EXISTS comments_page ON comments(page, hidden);
 """
 
@@ -91,9 +99,26 @@ def conn():
         c.close()
 
 
+# Columns added after the first release; added on start if an older database lacks them.
+ORDER_COLUMNS = {
+    "token": "TEXT",            # secret part of the client's reading-room link
+    "progress": "TEXT NOT NULL DEFAULT 'received'",  # received / reading / ready
+    "reading_text": "TEXT",     # Ash's written reading (Markdown)
+    "media_url": "TEXT",        # optional voice or video link
+    "updated_at": "TEXT",
+}
+
+
 def init():
     with conn() as c:
         c.executescript(SCHEMA)
+        have = {r["name"] for r in c.execute("PRAGMA table_info(orders)")}
+        for col, kind in ORDER_COLUMNS.items():
+            if col not in have:
+                c.execute(f"ALTER TABLE orders ADD COLUMN {col} {kind}")
+        for row in c.execute("SELECT id FROM orders WHERE token IS NULL").fetchall():
+            c.execute("UPDATE orders SET token=? WHERE id=?", (new_token(), row["id"]))
+        c.execute("CREATE UNIQUE INDEX IF NOT EXISTS orders_token ON orders(token)")
 
 
 def new_code(c) -> str:
@@ -102,6 +127,10 @@ def new_code(c) -> str:
         code = "ASH-" + "".join(secrets.choice(alphabet) for _ in range(5))
         if not c.execute("SELECT 1 FROM members WHERE referral_code=?", (code,)).fetchone():
             return code
+
+
+def new_token() -> str:
+    return secrets.token_urlsafe(18)
 
 
 def new_order_id() -> str:

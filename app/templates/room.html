@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Your reading room · EmpressAsh{% endblock %}
+{% block content %}
+{% set paid = o.status in ('paid', 'delivered') %}
+{% set first = o.name.split(' ')[0] %}
+<section class="room" data-room data-token="{{ o.token }}" data-name="{{ r.name if r else o.reading }}" data-date="{{ o.created_at[:10] }}">
+  <div class="wrap prose">
+    <p class="eyebrow center">Your reading room</p>
+    {% if o.status == 'pending' %}
+      <h1 class="page-title center">Almost there, {{ first }}</h1>
+      <p class="muted center">We're waiting for your payment to be confirmed. This usually takes a few seconds.</p>
+      <p class="center"><a class="btn btn-ghost" href="/room/{{ o.token }}">Refresh</a></p>
+    {% elif not paid %}
+      <h1 class="page-title center">Payment not completed</h1>
+      <p class="muted center">The payment didn't go through, so you haven't been charged. You can try again any time.</p>
+      <p class="center"><a class="btn" href="/checkout/{{ o.reading }}?format={{ o.format }}">Try again</a></p>
+    {% else %}
+      <h1 class="page-title center">Welcome, {{ first }}</h1>
+      <p class="muted center">This private page is yours. {% if f and f.live %}Pick a time for your session, and Ash's notes{% else %}Your reading{% endif %} will appear here. You can message Ash below at any time.</p>
+      <div class="room-save card">
+        <p><strong>Keep this page.</strong> Bookmark it, or add it to your home screen. Anyone with this link can see your reading, so keep it to yourself.</p>
+        <div class="share-row" data-share-url="{{ s.SITE_URL }}/room/{{ o.token }}" data-share-text="My EmpressAsh reading room">
+          <button class="btn btn-small btn-ghost" type="button" data-share="copy">Copy my link</button>
+        </div>
+      </div>
+
+      <ol class="progress-steps" aria-label="Progress">
+        {% set steps = [('received', 'Received'), ('reading', 'Ash is reading'), ('ready', 'Your reading is ready')] if not (f and f.live) else [('received', 'Booked'), ('reading', 'Session time picked'), ('ready', 'Notes from Ash')] %}
+        {% set order_ix = {'received': 0, 'reading': 1, 'ready': 2}[o.progress or 'received'] %}
+        {% for key, label in steps %}
+        <li class="{% if loop.index0 < order_ix %}done{% elif loop.index0 == order_ix %}now{% endif %}"><span class="dot" aria-hidden="true"></span>{{ label }}</li>
+        {% endfor %}
+      </ol>
+
+      <div class="card room-order">
+        <p class="eyebrow">{{ r.name if r else o.reading }} · {{ f.label if f else o.format }}</p>
+        <p class="muted">Your question</p>
+        <p class="room-question">{{ o.question }}</p>
+      </div>
+
+      {% if f and f.live %}
+      <h2 id="session">Pick your time</h2>
+      {% if cal_path %}
+        <p class="muted">Ash reads Thursday to Sunday, 6–8pm IST. Choose a slot and you'll get a calendar invite with the video link.</p>
+        <div id="cal-inline" class="cal-inline" data-cal-path="{{ cal_path }}" data-cal-name="{{ o.name }}" data-cal-email="{{ o.email }}" data-cal-notes="Order {{ o.id }}"></div>
+        <p class="fine">Calendar not loading? <a href="{{ s.CAL_LINK }}?name={{ o.name|urlencode }}&email={{ o.email|urlencode }}&notes={{ ('Order ' ~ o.id)|urlencode }}" target="_blank" rel="noopener">Open it in a new tab</a>.</p>
+      {% else %}
+        <p class="muted">Ash will send you times for your session in the messages below.</p>
+      {% endif %}
+      {% endif %}
+
+      {% if reading_html or o.media_url %}
+      <h2 id="reading">Your reading</h2>
+      <article class="card reading-text">
+        {{ reading_html|safe }}
+        {% if o.media_url %}
+          {% if o.media_url.split('?')[0].lower().endswith(('.mp3', '.m4a', '.wav', '.ogg')) %}
+          <audio controls preload="none" src="{{ o.media_url }}" style="width:100%"></audio>
+          {% endif %}
+          <p><a class="btn" href="{{ o.media_url }}" target="_blank" rel="noopener">Listen or watch Ash's recording</a></p>
+        {% endif %}
+        <p class="sign">With love, Ash</p>
+      </article>
+      {% if o.progress == 'ready' %}<p class="center muted">Did the reading speak to you? <a href="/reviews#leave">Leave a few kind words</a>.</p>{% endif %}
+      {% elif not (f and f.live) %}
+      <p class="center muted" style="margin:28px 0">Ash will write your reading within 48 hours. It will appear right here.</p>
+      {% endif %}
+
+      <h2 id="messages">Messages with Ash</h2>
+      <div class="thread">
+        {% for m in messages %}
+        <div class="bubble {{ m.sender }}"><p class="bubble-by">{{ 'Ash' if m.sender == 'ash' else 'You' }} <span class="fine">· {{ m.created_at[:16] }}</span></p><p>{{ m.body }}</p></div>
+        {% else %}
+        <p class="muted">No messages yet. Ask Ash anything about your reading.</p>
+        {% endfor %}
+      </div>
+      <form class="card form" method="post" action="/room/{{ o.token }}/message">
+        {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+        <label for="msg">Message Ash</label>
+        <textarea id="msg" name="body" rows="3" maxlength="2000" required></textarea>
+        <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <p><button class="btn" type="submit">Send</button></p>
+      </form>
+    {% endif %}
+    <p class="fine center">Order reference: {{ o.id }}</p>
+  </div>
+</section>
+{% if paid and f and f.live and cal_path %}
+<script>
+  (function (C, A, L) { var p = function (a, ar) { a.q.push(ar); }; var d = C.document; C.Cal = C.Cal || function () { var cal = C.Cal; var ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { var api = function () { p(api, arguments); }; var namespace = ar[1]; api.q = api.q || []; if (typeof namespace === "string") { cal.ns[namespace] = cal.ns[namespace] || api; p(cal.ns[namespace], ar); p(cal, ["initNamespace", namespace]); } else p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
+  (function () {
+    var el = document.getElementById("cal-inline");
+    Cal("init", { origin: "https://cal.com" });
+    Cal("inline", { elementOrSelector: "#cal-inline", calLink: el.getAttribute("data-cal-path"), layout: "month_view",
+      config: { name: el.getAttribute("data-cal-name"), email: el.getAttribute("data-cal-email"), notes: el.getAttribute("data-cal-notes"), theme: "dark" } });
+    Cal("ui", { theme: "dark", hideEventTypeDetails: false, cssVarsPerTheme: { dark: { "cal-brand": "#F8D794" } } });
+  })();
+</script>
+{% endif %}
+{% endblock %}
