@@ -1,26 +1,9 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>About Ash · EmpressAsh</title>
-<meta name="description" content="Ash is a certified tarot reader with more than ten years of practice, reading with an intuitive, guided and gentle style.">
-<meta property="og:title" content="About Ash · EmpressAsh">
-<meta property="og:description" content="Ash is a certified tarot reader with more than ten years of practice, reading with an intuitive, guided and gentle style.">
-<meta name="theme-color" content="#111A19">
-<link rel="icon" href="images/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
-</head>
-<body data-page="about">
-<div class="sky" aria-hidden="true"></div>
-<header id="site-header"></header>
-<main>
+{% extends "base.html" %}
+{% block title %}About Ash · EmpressAsh{% endblock %}
+{% block content %}
 <section>
   <div class="wrap split">
-    <div class="portrait reveal"><!-- PLACEHOLDER: Ash's photo, e.g. <img src="images/ash.webp" alt="Ash"> --><span>Ash's photo goes here</span></div>
+    <div class="portrait reveal"><!-- PLACEHOLDER: Ash's photo, e.g. <img src="/static/images/ash.webp" alt="Ash"> --><span>Ash's photo goes here</span></div>
     <div class="reveal">
       <p class="eyebrow">About me</p>
       <h1>I'm Ash</h1>
@@ -41,7 +24,7 @@
     <h2 class="center">The cards and stones I read with</h2>
     <p class="muted center" style="max-width:640px;margin:0 auto 28px">I work with more than five decks, letting guidance choose the right one for each reading. Most often I reach for my Rider-Waite tarot deck.</p>
     <div class="tools">
-      <!-- PLACEHOLDER: replace each with a photo, e.g. <div class="tool-photo"><img src="images/rider-waite.webp" alt="Rider-Waite tarot deck"></div> -->
+      <!-- PLACEHOLDER: replace each with a photo, e.g. <div class="tool-photo"><img src="/static/images/rider-waite.webp" alt="Rider-Waite tarot deck"></div> -->
       <div class="tool-photo reveal">Rider-Waite tarot deck</div>
       <div class="tool-photo reveal">Oracle decks</div>
       <div class="tool-photo reveal">Runes</div>
@@ -57,12 +40,7 @@
       <div class="card reveal"><p class="eyebrow">Practice</p><h3>Tarot, oracle, runes &amp; energy</h3><p class="muted">Card and rune readings, alongside energy work and guidance.</p></div>
       <div class="card reveal"><p class="eyebrow">Who I read for</p><h3>Real questions</h3><p class="muted">Career, love, yes-or-no questions, a new home or the year ahead. No readings on death or hospitalisation, and only for adults 18+.</p></div>
     </div>
-    <p class="center" style="margin-top:40px"><a class="btn" href="readings.html">Explore readings</a></p>
+    <p class="center" style="margin-top:40px"><a class="btn" href="/readings">Explore readings</a></p>
   </div>
 </section>
-</main>
-<footer id="site-footer"></footer>
-<script src="js/config.js"></script>
-<script src="js/main.js"></script>
-</body>
-</html>
+{% endblock %}

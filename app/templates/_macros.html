@@ -1,0 +1,46 @@
+{% macro price(r, fmt) -%}
+{%- set i = catalog.FORMAT_IDS.index(fmt) -%}
+<span class="cur-inr">{{ catalog.fmt_price(r.inr[i], 'inr') }}</span><span class="cur-usd">{{ catalog.fmt_price(r.usd[i], 'usd') }}</span>
+{%- endmacro %}
+
+{% macro currency_switch() -%}
+<div class="currency" role="group" aria-label="Currency"><button type="button" data-currency="inr">₹ INR</button><button type="button" data-currency="usd">$ USD</button></div>
+{%- endmacro %}
+
+{% macro reading_card(r) -%}
+<article class="reading reveal">
+  <p class="eyebrow">{{ r.tag }}</p>
+  <h3><a class="plain" href="/readings/{{ r.id }}">{{ r.name }}</a></h3>
+  <p class="muted">{{ r.desc }}</p>
+  <p class="duration">✦ {{ r.duration }}</p>
+  <ul class="formats">
+    {% for f in catalog.FORMATS %}
+    <li><span>{{ f.label }}</span><span class="price">{{ price(r, f.id) }}</span>
+      {% if f.live and not s.LIVE_READINGS_OPEN %}<span class="soon">Soon</span>
+      {% elif r.inr[loop.index0] is none %}<a class="btn btn-small btn-ghost" href="/contact">Ask</a>
+      {% else %}<a class="btn btn-small" href="/checkout/{{ r.id }}?format={{ f.id }}">Book</a>{% endif %}
+    </li>
+    {% endfor %}
+  </ul>
+</article>
+{%- endmacro %}
+
+{% macro comments_block(comments, error, action) -%}
+<section class="comments" id="comments">
+  <h2>Share your thoughts</h2>
+  <form method="post" action="{{ action }}" class="card form">
+    {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+    <label for="c-name">Your name</label>
+    <input id="c-name" name="name" maxlength="60" required autocomplete="given-name">
+    <label for="c-body">Comment</label>
+    <textarea id="c-body" name="body" maxlength="1000" rows="4" required></textarea>
+    <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+    <p><button class="btn" type="submit">Post comment</button></p>
+  </form>
+  {% for c in comments %}
+  <div class="comment"><p class="comment-by">{{ c.name }} <span class="fine">· {{ c.created_at[:10] }}</span></p><p>{{ c.body }}</p></div>
+  {% else %}
+  <p class="muted">No comments yet. Be the first to share what this stirs in you.</p>
+  {% endfor %}
+</section>
+{%- endmacro %}

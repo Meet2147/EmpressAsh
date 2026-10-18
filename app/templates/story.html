@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% from "_macros.html" import comments_block with context %}
+{% block title %}{{ st.title }} · EmpressAsh{% endblock %}
+{% block description %}{{ st.summary }}{% endblock %}
+{% block content %}
+<section>
+  <article class="wrap prose">
+    <p class="eyebrow"><a class="plain" href="/stories">Stories</a> · {{ st.date }}</p>
+    <h1 class="page-title">{{ st.title }}</h1>
+    <div class="story-body">{{ st.html|safe }}</div>
+    <div class="share-row" style="justify-content:flex-start;margin-top:28px" data-share-url="{{ s.SITE_URL }}/stories/{{ st.slug }}" data-share-text="{{ st.title }} by Ash">
+      <button class="btn btn-small" type="button" data-share="native">Share</button>
+      <a class="btn btn-small btn-ghost" target="_blank" rel="noopener" href="https://wa.me/?text={{ (st.title ~ ' ' ~ s.SITE_URL ~ '/stories/' ~ st.slug)|urlencode }}">WhatsApp</a>
+      <button class="btn btn-small btn-ghost" type="button" data-share="copy">Copy link</button>
+    </div>
+    {{ comments_block(comments, error, "/stories/" ~ st.slug) }}
+  </article>
+</section>
+{% endblock %}

@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Stories · EmpressAsh{% endblock %}
+{% block description %}Stories, reflections and writing from Ash.{% endblock %}
+{% block content %}
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Stories</p>
+    <h1 class="page-title">From Ash's journal</h1>
+    <p class="muted" style="max-width:640px">Personal stories, reflections and lessons from the cards.</p>
+    <div class="grid" style="margin-top:28px">
+      {% for st in stories %}
+      <a class="card reveal plain" href="/stories/{{ st.slug }}"><p class="eyebrow">{{ st.date }}</p><h3>{{ st.title }}</h3><p class="muted">{{ st.summary }}</p><p class="fine">Read story →</p></a>
+      {% else %}
+      <p class="muted">Ash's first stories are coming soon.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Admin · EmpressAsh{% endblock %}
+{% block content %}
+<section class="admin"><div class="wrap">
+  <div class="toolbar">
+    <h1 class="page-title">Ash's dashboard</h1>
+    <form method="post" action="/admin/logout"><button class="btn btn-small btn-ghost">Sign out</button></form>
+  </div>
+  <div class="grid stats">
+    <div class="card"><p class="eyebrow">Members</p><p class="price big">{{ members|length }}</p></div>
+    <div class="card"><p class="eyebrow">Free readings to send</p><p class="price big">{{ members|selectattr('free_status', 'equalto', 'requested')|list|length }}</p></div>
+    <div class="card"><p class="eyebrow">Paid orders to deliver</p><p class="price big">{{ orders|selectattr('status', 'equalto', 'paid')|list|length }}</p></div>
+    <div class="card"><p class="eyebrow">Birthdays in {{ month }}</p><p class="price big">{{ birthdays|length }}</p></div>
+  </div>
+
+  <h2 id="orders">Orders</h2>
+  <p><a class="btn btn-small btn-ghost" href="/admin/export/orders.csv">Download CSV</a></p>
+  <div class="table-wrap"><table>
+    <tr><th>Date</th><th>Ref</th><th>Reading</th><th>Amount</th><th>Client</th><th>Question</th><th>Status</th><th></th></tr>
+    {% for o in orders %}
+    <tr><td>{{ o.created_at[:16] }}</td><td>{{ o.id }}</td><td>{{ catalog.BY_ID[o.reading].name if o.reading in catalog.BY_ID else o.reading }}<br><span class="fine">{{ o.format }}</span></td>
+      <td>{{ catalog.fmt_price(o.amount, o.currency) }}</td>
+      <td>{{ o.name }}<br><span class="fine">{{ o.email }}<br>{{ o.phone }} · {{ o.birthday }}</span></td>
+      <td class="q">{{ o.question }}</td><td><span class="pill {{ o.status }}">{{ o.status }}</span></td>
+      <td>{% if o.status in ('paid', 'delivered') %}<form method="post" action="/admin/orders/{{ o.id }}/done"><button class="btn btn-small btn-ghost">{{ 'Undo' if o.status == 'delivered' else 'Mark delivered' }}</button></form>{% endif %}</td></tr>
+    {% else %}<tr><td colspan="8" class="muted">No orders yet.</td></tr>{% endfor %}
+  </table></div>
+
+  <h2 id="members">Members</h2>
+  <p><a class="btn btn-small btn-ghost" href="/admin/export/members.csv">Download CSV</a></p>
+  <div class="table-wrap"><table>
+    <tr><th>Joined</th><th>Name</th><th>Contact</th><th>Birthday</th><th>Code</th><th>Referred by</th><th>Credits</th><th>Free reading question</th><th></th></tr>
+    {% for m in members %}
+    <tr><td>{{ m.created_at[:10] }}</td><td>{{ m.name }}</td><td><span class="fine">{{ m.email }}<br>{{ m.phone }}</span></td><td>{{ m.birthday }}</td>
+      <td>{{ m.referral_code }}</td><td>{{ m.referred_by or '' }}</td><td>{{ m.referral_credits }}</td><td class="q">{{ m.free_question or '' }}</td>
+      <td><form method="post" action="/admin/members/{{ m.id }}/free-done"><button class="btn btn-small btn-ghost">{{ 'Sent ✓' if m.free_status == 'done' else 'Mark free reading sent' }}</button></form></td></tr>
+    {% else %}<tr><td colspan="9" class="muted">No members yet.</td></tr>{% endfor %}
+  </table></div>
+
+  <h2 id="comments">Comments</h2>
+  <div class="table-wrap"><table>
+    <tr><th>Date</th><th>Page</th><th>Name</th><th>Comment</th><th></th></tr>
+    {% for c in comments %}
+    <tr{% if c.hidden %} class="hidden-row"{% endif %}><td>{{ c.created_at[:16] }}</td><td>{{ c.page }}</td><td>{{ c.name }}</td><td class="q">{{ c.body }}</td>
+      <td><form method="post" action="/admin/comments/{{ c.id }}/hide"><button class="btn btn-small btn-ghost">{{ 'Show' if c.hidden else 'Hide' }}</button></form></td></tr>
+    {% else %}<tr><td colspan="5" class="muted">No comments yet.</td></tr>{% endfor %}
+  </table></div>
+</div></section>
+{% endblock %}

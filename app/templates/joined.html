@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Welcome to the circle · EmpressAsh{% endblock %}
+{% block content %}
+<section>
+  <div class="wrap prose center">
+    <span class="brand-moon big" aria-hidden="true"></span>
+    <h1 class="page-title">Welcome, {{ name.split(' ')[0] }}</h1>
+    <p class="lead-left center">Your free first reading is requested. Ash will be in touch by email or WhatsApp.</p>
+    <div class="card" style="margin:28px 0;text-align:center">
+      <p class="eyebrow">Your code</p>
+      <p class="code">{{ code }}</p>
+      <p class="muted">Share your link. When a friend joins with it, you earn another free reading.</p>
+      <input class="share-input" readonly value="{{ share }}" aria-label="Your share link">
+      <div class="share-row" data-share-url="{{ share }}" data-share-text="Get a free tarot reading from Ash with my code {{ code }}">
+        <button class="btn btn-small" type="button" data-share="native">Share</button>
+        <a class="btn btn-small btn-ghost" target="_blank" rel="noopener" href="https://wa.me/?text={{ ('Get a free tarot reading from Ash with my code ' ~ code ~ ' ' ~ share)|urlencode }}">WhatsApp</a>
+        <button class="btn btn-small btn-ghost" type="button" data-share="copy">Copy link</button>
+      </div>
+    </div>
+    <a class="btn btn-ghost" href="/daily-card">Draw today's card</a>
+  </div>
+</section>
+{% endblock %}

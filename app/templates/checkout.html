@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% from "_macros.html" import price, currency_switch with context %}
+{% block title %}Book {{ r.name }} · EmpressAsh{% endblock %}
+{% block content %}
+<section>
+  <div class="wrap">
+    <p class="eyebrow">Book a reading</p>
+    <h1 class="page-title">Your reading awaits</h1>
+    <div class="booking" style="margin-top:28px">
+      <aside class="card">
+        <h3>{{ r.name }}</h3>
+        <p class="muted">{{ f.label }}{% if f.live %} · {{ r.duration }}{% else %} · delivered within 48 hours{% endif %}</p>
+        <p class="price big">{{ price(r, f.id) }}</p>
+        <div style="margin-top:16px">{{ currency_switch() }}</div>
+        <p class="fine" style="margin-top:16px">You'll pay the full amount on Dodo Payments' secure page. UPI, cards and more are accepted.</p>
+      </aside>
+      <form class="card form" method="post" action="/checkout/{{ r.id }}">
+        {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+        <input type="hidden" name="format" value="{{ f.id }}">
+        <input type="hidden" name="currency" value="{{ form.currency or 'usd' }}" data-currency-input>
+        <div class="field-row">
+          <div><label for="name">Full name</label><input id="name" name="name" required maxlength="80" autocomplete="name" value="{{ form.name or '' }}"></div>
+          <div><label for="email">Email</label><input id="email" name="email" type="email" required maxlength="120" autocomplete="email" value="{{ form.email or '' }}"></div>
+        </div>
+        <div class="field-row">
+          <div><label for="phone">Mobile (with country code)</label><input id="phone" name="phone" type="tel" required maxlength="25" autocomplete="tel" placeholder="+91 98765 43210" value="{{ form.phone or '' }}"></div>
+          <div><label for="birthday">Date of birth</label><input id="birthday" name="birthday" type="date" required value="{{ form.birthday or '' }}"></div>
+        </div>
+        <label for="question">Your question</label>
+        <textarea id="question" name="question" rows="5" required maxlength="1500" placeholder="What would you like guidance on?">{{ form.question or '' }}</textarea>
+        <label class="check"><input type="checkbox" name="agree" value="yes" required> I'm 18 or older and have read the <a href="/policies" target="_blank">policies</a>.</label>
+        <p><button class="btn" type="submit">Continue to secure payment</button></p>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

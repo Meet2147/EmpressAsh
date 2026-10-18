@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Admin · EmpressAsh{% endblock %}
+{% block content %}
+<section><div class="wrap" style="max-width:420px">
+  <h1 class="page-title">Admin</h1>
+  {% if not s.ADMIN_PASSWORD %}<p class="form-error">Set ADMIN_PASSWORD in Render's environment to turn on the admin page.</p>{% endif %}
+  <form class="card form" method="post" action="/admin/login">
+    {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+    <label for="password">Password</label><input id="password" name="password" type="password" required autocomplete="current-password">
+    <p><button class="btn" type="submit">Sign in</button></p>
+  </form>
+</div></section>
+{% endblock %}

@@ -1,27 +1,10 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Policies & Disclaimer · EmpressAsh</title>
-<meta name="description" content="EmpressAsh booking, payment and confidentiality policies, and reading disclaimer.">
-<meta property="og:title" content="Policies & Disclaimer · EmpressAsh">
-<meta property="og:description" content="EmpressAsh booking, payment and confidentiality policies, and reading disclaimer.">
-<meta name="theme-color" content="#111A19">
-<link rel="icon" href="images/favicon.svg" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/styles.css">
-</head>
-<body data-page="policies">
-<div class="sky" aria-hidden="true"></div>
-<header id="site-header"></header>
-<main>
+{% extends "base.html" %}
+{% block title %}Policies & Disclaimer · EmpressAsh{% endblock %}
+{% block content %}
 <section>
   <div class="wrap prose">
     <p class="eyebrow">Policies</p>
-    <h1 style="font-size:clamp(2.4rem,6vw,4rem)">Policies &amp; disclaimer</h1>
+    <h1 class="page-title">Policies &amp; disclaimer</h1>
 
     <h2>Disclaimer</h2>
     <p class="muted">All readings are intended for spiritual reflection and personal guidance. Tarot interpretations are subjective and do not guarantee outcomes. They are not a substitute for medical, legal, mental health, property or professional financial advice.</p>
@@ -49,11 +32,9 @@
 
     <h2>Confidentiality &amp; recordings</h2>
     <p class="muted">All sessions are confidential. Sessions are not recorded, by Ash or by the client; your written report arrives within 48 hours instead.</p>
+
+    <h2>Your details &amp; privacy</h2>
+    <p class="muted">When you book or join, Ash keeps your name, email, mobile number, date of birth and question. They are used to deliver your reading, send your birthday gift and share occasional offers. Your details are never sold. To have them removed, message Ash and they will be deleted.</p>
   </div>
 </section>
-</main>
-<footer id="site-footer"></footer>
-<script src="js/config.js"></script>
-<script src="js/main.js"></script>
-</body>
-</html>
+{% endblock %}

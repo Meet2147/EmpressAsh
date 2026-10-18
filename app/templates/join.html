@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Free first reading · EmpressAsh{% endblock %}
+{% block description %}Join EmpressAsh's circle for a free first reading, a birthday reading gift and a code to share with friends.{% endblock %}
+{% block content %}
+<section>
+  <div class="wrap">
+    <div class="split" style="align-items:start">
+      <div>
+        <p class="eyebrow">Join the circle</p>
+        <h1 class="page-title">Your first reading is on Ash</h1>
+        <p class="lead-left">Share a few details and Ash will send you a free written reading on one question.</p>
+        <ul class="muted perks">
+          <li>✦ A free first reading, one per person</li>
+          <li>✦ A birthday reading gift each year</li>
+          <li>✦ Your own code: when a friend joins with it, you earn another free reading</li>
+          <li>✦ Early word when live one-on-one sessions open</li>
+        </ul>
+      </div>
+      <form class="card form" method="post" action="/join">
+        {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+        <label for="name">Name</label><input id="name" name="name" required maxlength="80" autocomplete="name" value="{{ form.name or '' }}">
+        <label for="email">Email</label><input id="email" name="email" type="email" required maxlength="120" autocomplete="email" value="{{ form.email or '' }}">
+        <div class="field-row">
+          <div><label for="phone">Mobile (with country code)</label><input id="phone" name="phone" type="tel" required maxlength="25" autocomplete="tel" placeholder="+91 98765 43210" value="{{ form.phone or '' }}"></div>
+          <div><label for="birthday">Birthday</label><input id="birthday" name="birthday" type="date" required value="{{ form.birthday or '' }}"></div>
+        </div>
+        <label for="question">Your question for the free reading (optional)</label>
+        <textarea id="question" name="question" rows="4" maxlength="1500">{{ form.question or '' }}</textarea>
+        <label for="ref">Friend's code (optional)</label><input id="ref" name="ref" maxlength="12" value="{{ form.ref or '' }}" placeholder="ASH-XXXXX">
+        <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <label class="check"><input type="checkbox" name="agree" value="yes" required> I'm 18 or older, and Ash may contact me by email, WhatsApp or SMS about my reading and offers. I can opt out any time.</label>
+        <p><button class="btn" type="submit">Claim my free reading</button></p>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

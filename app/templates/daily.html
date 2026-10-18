@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_macros.html" import comments_block with context %}
+{% block title %}Card of the day · EmpressAsh{% endblock %}
+{% block description %}Draw today's tarot card with Ash and share what it means to you.{% endblock %}
+{% block content %}
+<section>
+  <div class="wrap center">
+    <p class="eyebrow">Card of the day · {{ card.date.strftime('%-d %B %Y') }}</p>
+    <h1 class="page-title">Draw your card</h1>
+    <p class="muted" style="max-width:560px;margin:0 auto 32px">Take a breath, hold a question in your mind, and turn the card over.</p>
+    <button class="flip" type="button" aria-label="Turn over today's card" data-flip>
+      <span class="flip-inner">
+        <span class="tarot-card back" aria-hidden="true"><span class="tarot-star">✦</span><span class="tarot-name">EmpressAsh</span></span>
+        <span class="tarot-card front"><span class="tarot-numeral">{{ card.numeral }}</span><span class="tarot-star" aria-hidden="true">☾</span><span class="tarot-name">{{ card.name }}</span></span>
+      </span>
+    </button>
+    <div class="card-meaning" data-meaning hidden>
+      <p class="eyebrow">{{ card.arcana }}</p>
+      <h2>{{ card.name }}</h2>
+      <p class="lead-left center">{{ card.meaning }}</p>
+      <div class="share-row" data-share-url="{{ s.SITE_URL }}/daily-card" data-share-text="My card of the day from EmpressAsh: {{ card.name }}">
+        <button class="btn btn-small" type="button" data-share="native">Share</button>
+        <a class="btn btn-small btn-ghost" target="_blank" rel="noopener" href="https://wa.me/?text={{ ('My card of the day from EmpressAsh: ' ~ card.name ~ ' ' ~ s.SITE_URL ~ '/daily-card')|urlencode }}">WhatsApp</a>
+        <a class="btn btn-small btn-ghost" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url={{ (s.SITE_URL ~ '/daily-card')|urlencode }}">LinkedIn</a>
+        <button class="btn btn-small btn-ghost" type="button" data-share="copy">Copy link</button>
+      </div>
+      <p class="fine">For Instagram, take a screenshot and tag Ash.</p>
+    </div>
+  </div>
+</section>
+<section style="padding-top:0">
+  <div class="wrap prose">
+    {{ comments_block(comments, error, "/daily-card") }}
+  </div>
+</section>
+{% endblock %}
