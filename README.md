@@ -1,61 +1,64 @@
-# EmpressAsh website
+# EmpressAsh
 
-Static website for EmpressAsh (tarot, oracle and energy readings with Ash). Plain HTML, CSS and JavaScript with no build step, hosted free on Render.
+Website for EmpressAsh: tarot, oracle and rune readings with Ash. A small Python (FastAPI) app on Render, with a SQLite database on a Render disk.
 
-**Pages:** Home (with testimonials), About, Readings (15 spreads × 3 formats, INR and USD), Book, Contact, Policies.
-**Booking:** Cal.com inline embed. **Payment:** Dodo Payments hosted checkout links, paid in full.
-**Extras:** wand cursor that lights up what it touches (mouse only), a free first reading booked through its own Cal.com event, WhatsApp chat button, 18+ confirmation on first visit, currency picked automatically (INR in India, USD elsewhere) with a manual switch.
+## What it does
+
+- **Readings:** 16 spreads, each with its own page, in three formats (video, voice, written) with INR and USD prices. Currency is picked from the visitor's time zone and can be switched.
+- **Checkout:** the client fills in name, email, mobile, date of birth and question; the server creates a Dodo Payments checkout for the exact price and sends them to pay. Dodo's webhook marks the order paid. Live video/voice readings show "Coming soon" until `LIVE_READINGS_OPEN=true`; after paying for a live reading the client is sent to `CAL_LINK` to pick a time.
+- **Join the circle (`/join`):** collects name, email, mobile and birthday for a free first reading and birthday gifts. Each member gets a referral code and link (`/r/CODE`); when a friend joins with it, the member earns a free-reading credit.
+- **Readings as tarot cards:** each spread is a card that is dealt in as it scrolls into view, tilts and glows under the cursor, and turns over to show its formats and prices.
+- **Daily card (`/daily-card`):** one card from the 78-card deck per day (IST), with a flip animation, share buttons (WhatsApp, LinkedIn, and a "Save image" that opens the phone's share sheet for Instagram) and comments.
+- **Ask the cards (`/practice`):** visitors shuffle the deck, pick three cards from a fan, write their own reading, then reveal each card's meaning. Shareable as an image, with a comment thread.
+- **Reviews (`/reviews`):** clients leave a review; it appears on the site and homepage only after Ash publishes it in the admin.
+- **Stories (`/stories`):** Markdown files in `content/stories/`, with comments. See `content/stories/README.md`.
+- **Admin (`/admin`):** password login; orders, members, birthdays this month (with ready-to-send WhatsApp and email birthday messages), reviews to publish, comments (hide/show), mark readings delivered, CSV export of members and orders.
+- Wand cursor, 18+ check on first visit, WhatsApp button, dark 1800s theme in Ash's palette.
 
 ## Run locally
 
 ```bash
-python3 -m http.server 8000
-# open http://localhost:8000
+python3 -m venv .venv && . .venv/bin/activate
+pip install -r requirements.txt
+ADMIN_PASSWORD=dev uvicorn app.main:app --reload
+# http://localhost:8000
 ```
+
+Without Dodo settings the site works, and checkout says online payment is being set up.
 
 ## Where to change things
 
-Almost everything lives in [`js/config.js`](js/config.js):
-
-| What | Key |
+| What | Where |
 |---|---|
-| Email, phone, WhatsApp number | `SITE.contact` |
-| Instagram, YouTube | `SITE.social` |
-| Cal.com booking link | `SITE.calDefault` (or per spread in `SITE.calEvents`) |
-| Free first reading (Cal.com event) | `SITE.calFree` |
-| Dodo checkout links | `SITE.dodo["<spread-id>:<video\|voice\|written>:<inr\|usd>"]` |
-| Reading names, descriptions, durations, prices (`null` = on request) | `READINGS` |
+| Readings, descriptions, prices (`None` = on request) | `app/catalog.py` |
+| Page text | `app/templates/*.html` (placeholders marked `PLACEHOLDER`) |
+| Colours and fonts | top of `app/static/css/styles.css` |
+| Photos | `app/static/images/` (run `scripts/compress-images.sh` first) |
+| Stories | `content/stories/*.md` |
+| Contact details, social links, payment keys, switches | Render environment variables (below) |
 
-Any value still containing `PLACEHOLDER` shows a "coming soon" message on the site instead of a broken link.
+## Deploy on Render
 
-Text for About, testimonials and the refund policy is in the HTML files and marked with `PLACEHOLDER` comments. Colours are the tokens at the top of [`css/styles.css`](css/styles.css).
+1. **New → Blueprint**, pick this repo. `render.yaml` creates one Starter web service ($7/month) with a 1 GB disk for the database (about $0.25/month).
+2. Fill in the environment variables Render asks for:
 
-## Setting up the services
+| Variable | What to put |
+|---|---|
+| `SITE_URL` | e.g. `https://empressash.onrender.com` (later your own domain) |
+| `ADMIN_PASSWORD` | a long password for `/admin` |
+| `DODO_PAYMENTS_API_KEY` | API key from Dodo (Developer → API keys). Never put it in code or chat. |
+| `DODO_PAYMENTS_MODE` | `test_mode` while testing, `live_mode` to take real payments |
+| `DODO_PRODUCT_INR` / `DODO_PRODUCT_USD` | IDs of two one-time products set to **Pay What You Want**, one priced in INR and one in USD. The server sets the exact price. |
+| `DODO_PAYMENTS_WEBHOOK_KEY` | In Dodo, add a webhook to `https://<SITE_URL>/webhooks/dodo` for payment events and paste its secret here |
+| `LIVE_READINGS_OPEN` | `false` until live calls launch, then `true` |
+| `CAL_LINK` | Cal.com booking link for live sessions (connect it to Google Calendar) |
+| `CONTACT_EMAIL`, `CONTACT_PHONE`, `CONTACT_WHATSAPP` | public contact details; WhatsApp as digits, e.g. `919876543210` |
+| `INSTAGRAM_URL`, `YOUTUBE_URL`, `TELEGRAM_URL` | social links (optional) |
 
-### Cal.com (free plan)
-1. Create an account and an event type, e.g. `empressash/reading`.
-2. Availability: Thursday to Sunday, 18:00–20:00 Asia/Kolkata.
-3. Limits: minimum notice 7 days; booking frequency limit 5 per week.
-4. Booking questions: full name and "Your question" (required).
-5. Turn on email confirmations and reminders.
-6. Create a second event for the free first reading, with required booking questions for email, mobile number and date of birth, and limit it to one booking per email. Put it in `SITE.calFree`.
-7. Put the link in `SITE.calDefault`. If Ash wants exact durations per spread, create one event per duration and map them in `SITE.calEvents`.
+`SECRET_KEY` is generated by Render automatically.
 
-### Dodo Payments
-1. Confirm with Dodo that tarot/spiritual readings are allowed under their acceptable-use policy before going live.
-2. Create a one-time product for each reading and format (45 products), each with an INR and a USD price, or 90 single-currency products.
-3. Copy each product's hosted checkout link into `SITE.dodo`.
-4. Set the success redirect to `https://<your-domain>/book.html?paid=1` if wanted.
+### Staging (test copy)
 
-Booking flow: the client picks a time on Cal.com, then pays the full amount through Dodo. Ash confirms the booking once payment arrives. Written readings skip the calendar; the client pays and sends their name and question on WhatsApp or email.
+The Blueprint also creates `empressash-staging` on Render's free plan. It always runs Dodo in test mode, so use it to try changes and test card payments before they reach the live site. It sleeps after 15 minutes without visitors (the first visit then takes about a minute) and its database resets on every deploy. Fill in `SITE_URL` with its own `onrender.com` address and use Dodo **test** keys and products there. If you don't want it, delete it in Render; the live site is unaffected.
 
-### Images
-Put originals in `originals/` (git-ignored) and run:
-```bash
-scripts/compress-images.sh originals/*.jpg
-```
-This writes WebP files under 200 KB to `images/`. Keep video on YouTube to stay within Render's free 5 GB/month bandwidth.
-
-## Deploy on Render (free)
-1. In Render: **New → Blueprint**, pick this repo. `render.yaml` creates a free static site publishing the repo root.
-2. Add the custom domain under the site's **Settings → Custom Domains** and point DNS as shown.
+Ask Dodo to confirm tarot readings are allowed under their acceptable-use policy before switching to live mode.

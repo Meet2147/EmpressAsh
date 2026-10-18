@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Thank you · EmpressAsh{% endblock %}
+{% block content %}
+<section>
+  <div class="wrap prose center">
+    <span class="brand-moon big" aria-hidden="true"></span>
+    {% if pay_status in ('paid', 'delivered') %}
+      <h1 class="page-title">Thank you, {{ o.name.split(' ')[0] }}</h1>
+      <p class="lead-left center">Your payment for <strong>{{ r.name if r else o.reading }}</strong> ({{ f.label if f else o.format }}) is confirmed.</p>
+      {% if f and f.live and s.CAL_LINK %}
+        <p class="muted">Now choose a time for your session. Ash reads Thursday to Sunday, 6–8pm IST.</p>
+        <p><a class="btn" href="{{ s.CAL_LINK }}?name={{ o.name|urlencode }}&email={{ o.email|urlencode }}&notes={{ ('Order ' ~ o.id)|urlencode }}" target="_blank" rel="noopener">Pick your time</a></p>
+      {% else %}
+        <p class="muted">Ash will send your reading to your email within 48 hours.</p>
+      {% endif %}
+    {% elif pay_status == 'pending' %}
+      <h1 class="page-title">Almost there</h1>
+      <p class="muted">We're waiting for the payment to be confirmed. This page updates when you refresh it.</p>
+      <p><a class="btn btn-ghost" href="/thank-you?order={{ o.id }}">Refresh</a></p>
+    {% else %}
+      <h1 class="page-title">Payment not completed</h1>
+      <p class="muted">The payment didn't go through, so you haven't been charged. You can try again any time.</p>
+      <p><a class="btn" href="/readings">Back to readings</a></p>
+    {% endif %}
+    {% if pay_status in ('paid', 'delivered') %}<p class="muted">After your reading, Ash would love to hear how it felt. <a href="/reviews#leave">Leave a review</a>.</p>{% endif %}
+    <p class="fine">Order reference: {{ o.id }}</p>
+  </div>
+</section>
+{% endblock %}

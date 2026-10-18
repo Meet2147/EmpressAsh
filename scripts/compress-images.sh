@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Converts photos to WebP, max 1600px wide, aiming for under 200 KB each.
 # Usage: scripts/compress-images.sh path/to/originals/*.jpg
-# Output goes to images/. Needs `cwebp` (brew install webp / apt install webp).
+# Output goes to app/static/images/. Needs `cwebp` (brew install webp / apt install webp).
 set -euo pipefail
-out="$(dirname "$0")/../images"
+out="$(dirname "$0")/../app/static/images"
 for f in "$@"; do
   name="$(basename "${f%.*}").webp"
   cwebp -quiet -q 78 -resize 1600 0 -metadata none "$f" -o "$out/$name"

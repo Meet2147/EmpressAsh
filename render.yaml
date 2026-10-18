@@ -1,21 +1,82 @@
-# Render Blueprint: free static site, no server needed.
+# Render Blueprint.
+# empressash:          the live site ($7/month Starter) with a 1 GB disk for the database.
+# empressash-staging:  a free test copy that always uses Dodo test mode. It sleeps when idle and
+#                      its data resets on each deploy, so use it only to try changes before going live.
 services:
   - type: web
     name: empressash
-    runtime: static
-    buildCommand: ""
-    staticPublishPath: .
-    pullRequestPreviewsEnabled: true
-    headers:
-      - path: /css/*
-        name: Cache-Control
-        value: public, max-age=604800
-      - path: /js/*
-        name: Cache-Control
-        value: public, max-age=3600
-      - path: /images/*
-        name: Cache-Control
-        value: public, max-age=2592000, immutable
-      - path: /*
-        name: X-Content-Type-Options
-        value: nosniff
+    runtime: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    healthCheckPath: /healthz
+    disk:
+      name: data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: DATA_DIR
+        value: /var/data
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SITE_URL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DODO_PAYMENTS_API_KEY
+        sync: false
+      - key: DODO_PAYMENTS_WEBHOOK_KEY
+        sync: false
+      - key: DODO_PAYMENTS_MODE
+        value: test_mode
+      - key: DODO_PRODUCT_INR
+        sync: false
+      - key: DODO_PRODUCT_USD
+        sync: false
+      - key: LIVE_READINGS_OPEN
+        value: "false"
+      - key: CAL_LINK
+        sync: false
+      - key: CONTACT_EMAIL
+        sync: false
+      - key: CONTACT_PHONE
+        sync: false
+      - key: CONTACT_WHATSAPP
+        sync: false
+      - key: INSTAGRAM_URL
+        sync: false
+      - key: YOUTUBE_URL
+        sync: false
+      - key: TELEGRAM_URL
+        sync: false
+
+  - type: web
+    name: empressash-staging
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT --proxy-headers --forwarded-allow-ips="*"
+    healthCheckPath: /healthz
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.8
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SITE_URL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: DODO_PAYMENTS_API_KEY
+        sync: false
+      - key: DODO_PAYMENTS_WEBHOOK_KEY
+        sync: false
+      - key: DODO_PAYMENTS_MODE
+        value: test_mode
+      - key: DODO_PRODUCT_INR
+        sync: false
+      - key: DODO_PRODUCT_USD
+        sync: false
+      - key: LIVE_READINGS_OPEN
+        value: "false"

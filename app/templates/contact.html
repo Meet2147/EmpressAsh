@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Contact Ash · EmpressAsh{% endblock %}
+{% block content %}
+<section>
+  <div class="wrap prose center">
+    <p class="eyebrow">Contact</p>
+    <h1 class="page-title">Send a message to the stars</h1>
+    <p class="muted">Questions about a reading, or a price on request? Reach Ash here.</p>
+    <div class="grid" style="margin-top:32px;text-align:left">
+      <div class="card"><p class="eyebrow">WhatsApp</p>{% if s.CONTACT.whatsapp %}<a href="https://wa.me/{{ s.CONTACT.whatsapp }}" target="_blank" rel="noopener">Message on WhatsApp</a>{% else %}<span class="muted">Coming soon</span>{% endif %}</div>
+      <div class="card"><p class="eyebrow">Email</p>{% if s.CONTACT.email %}<a href="mailto:{{ s.CONTACT.email }}">{{ s.CONTACT.email }}</a>{% else %}<span class="muted">Coming soon</span>{% endif %}</div>
+      <div class="card"><p class="eyebrow">Phone</p>{% if s.CONTACT.phone %}<a href="tel:{{ s.CONTACT.phone|replace(' ', '') }}">{{ s.CONTACT.phone }}</a>{% else %}<span class="muted">Coming soon</span>{% endif %}</div>
+    </div>
+    <p style="margin-top:32px">
+      {% if s.SOCIAL.instagram %}<a class="btn btn-ghost" href="{{ s.SOCIAL.instagram }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
+      {% if s.SOCIAL.youtube %}<a class="btn btn-ghost" href="{{ s.SOCIAL.youtube }}" target="_blank" rel="noopener">YouTube</a>{% endif %}
+      {% if s.SOCIAL.telegram %}<a class="btn btn-ghost" href="{{ s.SOCIAL.telegram }}" target="_blank" rel="noopener">Join the Telegram group</a>{% endif %}
+    </p>
+    <p class="fine">If Ash is unwell she'll let clients know; you can also check her YouTube channel for updates.</p>
+  </div>
+</section>
+{% endblock %}

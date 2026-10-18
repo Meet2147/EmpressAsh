@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% from "_macros.html" import reading_card, price, currency_switch, glyph with context %}
+{% block title %}{{ r.name }} · EmpressAsh{% endblock %}
+{% block description %}{{ r.desc }}{% endblock %}
+{% block content %}
+<section>
+  <div class="wrap split">
+    <div class="tcard tcard-hero reveal" aria-hidden="true"><div class="tcard-tilt"><div class="tcard-inner">
+      <div class="tcard-face tcard-front">
+        <span class="tcard-corner tl">✦</span><span class="tcard-corner tr">✦</span><span class="tcard-corner bl">✦</span><span class="tcard-corner br">✦</span>
+        <span class="tcard-num">{{ r.numeral }}</span>
+        <span class="tcard-art"><span class="tcard-rays"></span>{{ glyph(r.glyph) }}</span>
+        <span class="tcard-title">{{ r.name }}</span>
+        <span class="tcard-tag">{{ r.tag }}</span>
+        <span class="tcard-shine"></span>
+      </div>
+    </div></div></div>
+    <div class="reveal">
+      <p class="eyebrow"><a class="plain" href="/readings">Readings</a> · {{ r.tag }}</p>
+      <h1 class="page-title">{{ r.name }}</h1>
+      <p class="lead-left">{{ r.desc }}</p>
+      <p class="duration">✦ {{ r.duration }}</p>
+      <div style="margin:22px 0">{{ currency_switch() }}</div>
+      <ul class="formats big">
+        {% for f in catalog.FORMATS %}
+        <li><span>{{ f.label }}</span><span class="price">{{ price(r, f.id) }}</span>
+          {% if f.live and not s.LIVE_READINGS_OPEN %}<span class="soon">Coming soon</span>
+          {% elif r.inr[loop.index0] is none %}<a class="btn btn-small btn-ghost" href="/contact">Ask Ash</a>
+          {% else %}<a class="btn btn-small" href="/checkout/{{ r.id }}?format={{ f.id }}">Book</a>{% endif %}
+        </li>
+        {% endfor %}
+      </ul>
+      <p class="fine" style="margin-top:18px">Ash needs your full name and your question. Written summaries arrive within 48 hours. Sessions are never recorded.</p>
+    </div>
+  </div>
+</section>
+<section style="padding-top:0">
+  <div class="wrap">
+    <p class="ornament" aria-hidden="true">✦</p>
+    <h2 class="center">You may also like</h2>
+    <div class="deck-grid" data-deal style="margin-top:24px">{% for o in others %}{{ reading_card(o) }}{% endfor %}</div>
+  </div>
+</section>
+{% endblock %}

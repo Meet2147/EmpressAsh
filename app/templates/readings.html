@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% from "_macros.html" import reading_card, currency_switch with context %}
+{% block title %}Readings & Prices · EmpressAsh{% endblock %}
+{% block description %}Tarot and rune readings with Ash, as written readings now and live calls soon. Prices in INR and USD.{% endblock %}
+{% block content %}
+<section>
+  <div class="wrap">
+    <div class="toolbar">
+      <div><p class="eyebrow">Readings &amp; prices</p><h1 class="page-title">Choose your spread</h1></div>
+      {{ currency_switch() }}
+    </div>
+    <p class="muted" style="max-width:720px">Every spread comes in three formats. Prices show in rupees for India and US dollars elsewhere; switch any time.{% if not s.LIVE_READINGS_OPEN %} Written readings are open now. Live video and voice sessions open soon.{% endif %}</p>
+    <div class="packages" style="margin:32px 0 48px">
+      <div class="card"><p class="eyebrow">Premium{% if not s.LIVE_READINGS_OPEN %} · coming soon{% endif %}</p><h3>Video call + report</h3><ul><li>Private one-to-one video consultation for the listed duration</li><li>Live card interpretation and discussion of your question</li><li>Written summary with key insights and next steps within 48 hours</li></ul></div>
+      <div class="card"><p class="eyebrow">Private{% if not s.LIVE_READINGS_OPEN %} · coming soon{% endif %}</p><h3>Voice call + report</h3><ul><li>Private audio consultation for the listed duration</li><li>The same depth of interpretation as video</li><li>Written summary within 48 hours</li></ul></div>
+      <div class="card"><p class="eyebrow">Open now</p><h3>Written reading</h3><ul><li>No live call or appointment</li><li>Personal interpretation of your spread and question</li><li>Themes, challenges, opportunities and guidance</li><li>Delivered within 48 hours of payment</li></ul></div>
+    </div>
+    <div class="card offer" style="margin-bottom:32px">
+      <div><p class="eyebrow">New here?</p><h3>Your first reading is free</h3></div>
+      <a class="btn" href="/join">Claim your free reading</a>
+    </div>
+    <p class="muted">Tap any card to turn it over.</p>
+    <div class="deck-grid" data-deal>{% for r in catalog.READINGS %}{{ reading_card(r) }}{% endfor %}</div>
+    <p class="fine" style="margin-top:32px">All readings are for spiritual reflection and personal guidance. Tarot interpretations are subjective and do not guarantee outcomes, and are not a substitute for medical, legal, mental health, property or financial advice. See <a href="/policies">policies</a>.</p>
+  </div>
+</section>
+{% endblock %}

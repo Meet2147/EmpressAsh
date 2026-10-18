@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% from "_macros.html" import reading_card, currency_switch with context %}
+{% block content %}
+<section class="hero cinematic">
+  <div class="hero-scene" aria-hidden="true">
+    <div class="sun"></div>
+    <div class="rays"></div>
+    <svg class="ridges" viewBox="0 0 1440 600" preserveAspectRatio="xMidYMax slice">
+        <defs>
+          <linearGradient id="mistfade" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#cfd6cf" stop-opacity="0"/><stop offset="1" stop-color="#cfd6cf" stop-opacity=".55"/></linearGradient>
+          <linearGradient id="rimlight" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#F8D794" stop-opacity=".0"/><stop offset=".35" stop-color="#F8D794" stop-opacity=".55"/><stop offset=".6" stop-color="#F8D794" stop-opacity="0"/></linearGradient>
+        </defs>
+        <path d="M0,600 L0,364 L51,355 L103,326 L154,372 L206,322 L257,253 L309,244 L360,231 L411,225 L463,244 L514,241 L566,266 L617,308 L669,297 L720,336 L771,337 L823,358 L874,357 L926,309 L977,365 L1029,309 L1080,331 L1131,341 L1183,356 L1234,346 L1286,339 L1337,328 L1389,325 L1440,327 L1440,600 Z" fill="#5d6c69" opacity=".55"/>
+        <rect y="300" width="1440" height="300" fill="url(#mistfade)" opacity=".5"/>
+        <path d="M0,600 L0,403 L40,405 L80,407 L120,424 L160,416 L200,452 L240,419 L280,441 L320,392 L360,406 L400,407 L440,414 L480,435 L520,423 L560,406 L600,437 L640,409 L680,457 L720,444 L760,396 L800,411 L840,391 L880,384 L920,348 L960,369 L1000,357 L1040,311 L1080,328 L1120,360 L1160,395 L1200,360 L1240,382 L1280,389 L1320,409 L1360,438 L1400,425 L1440,435 L1440,600 Z" fill="#33423f" opacity=".85"/>
+        <path d="M0,600 L0,403 L40,405 L80,407 L120,424 L160,416 L200,452 L240,419 L280,441 L320,392 L360,406 L400,407 L440,414 L480,435 L520,423 L560,406 L600,437 L640,409 L680,457 L720,444 L760,396 L800,411 L840,391 L880,384 L920,348 L960,369 L1000,357 L1040,311 L1080,328 L1120,360 L1160,395 L1200,360 L1240,382 L1280,389 L1320,409 L1360,438 L1400,425 L1440,435 L1440,600 Z" fill="none" stroke="url(#rimlight)" stroke-width="2"/>
+        <path d="M1440,600 L1440,120 L1395,105 L1350,140 L1318,210 L1290,300 L1250,380 L1190,450 L1100,500 L980,540 L900,600 Z" fill="#141c1a"/>
+        <path d="M1318,210 L1290,300 L1250,380" fill="none" stroke="#F8D794" stroke-opacity=".35" stroke-width="2"/>
+      </svg>
+    <div class="cloud-sea"><span></span><span></span><span></span></div>
+    <img class="reeds reeds-left" src="/static/images/reeds.svg" alt="">
+    <img class="reeds reeds-right" src="/static/images/reeds.svg" alt="">
+  </div>
+  <div class="wrap hero-copy">
+    <p class="eyebrow">Tarot · Oracle · Runes · Energy guidance</p>
+    <h1>Step into another realm</h1>
+    <p class="lead">Gentle, intuitive readings with Ash, who has read the cards for more than ten years. A quiet space above the clouds to find clarity on love, career and the path ahead.</p>
+    <div class="actions">
+      <a class="btn" href="/join">Claim your free first reading</a>
+      <a class="btn btn-ghost" href="/daily-card">Draw today's card</a>
+    </div>
+  </div>
+</section>
+
+{% set tick = "Tarot ✦ Oracle ✦ Runes ✦ Energy work ✦ Love ✦ Career ✦ Year ahead ✦ Abundance ✦ Life guidance ✦ " %}
+<div class="ticker" aria-hidden="true"><div class="ticker-track"><span>{{ tick }}</span><span>{{ tick }}</span></div></div>
+
+<section>
+  <div class="wrap split">
+    <a class="tarot-card reveal" href="/daily-card" aria-label="Today's card: {{ card.name }}">
+      <span class="tarot-numeral">{{ card.numeral }}</span>
+      <span class="tarot-star" aria-hidden="true">✦</span>
+      <span class="tarot-name">Today's card</span>
+    </a>
+    <div class="reveal">
+      <p class="eyebrow">Card of the day</p>
+      <h2>Your card is waiting</h2>
+      <p class="muted">Each day the deck offers one card to everyone who visits. Turn it over, sit with its message, and share what it stirs in you with the circle.</p>
+      <a class="btn" href="/daily-card">Reveal today's card</a>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="card offer reveal">
+      <div><p class="eyebrow">For new visitors</p><h3>Your first reading is free</h3><p class="muted" style="margin:6px 0 0">Join the circle with your email, mobile and birthday. You'll get a free first reading, a birthday reading gift, and a code to share with friends.</p></div>
+      <a class="btn" href="/join">Join &amp; claim</a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <div class="toolbar">
+      <div><p class="eyebrow">Readings</p><h2>Choose your spread</h2></div>
+      {{ currency_switch() }}
+    </div>
+    <p class="muted">Tap a card to turn it over and see its formats and prices.</p>
+    <div class="card-rail">
+      <button class="rail-btn prev" type="button" data-rail="-1" aria-label="Previous cards">‹</button>
+      <div class="card-row" data-deal tabindex="0" aria-label="Readings">{% for r in featured %}{{ reading_card(r) }}{% endfor %}</div>
+      <button class="rail-btn next" type="button" data-rail="1" aria-label="More cards">›</button>
+    </div>
+    <p class="center" style="margin-top:24px"><a class="btn btn-ghost" href="/readings">See all readings</a></p>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <p class="eyebrow center">What people bring to the table</p>
+    <h2 class="center">Ask about what's on your mind</h2>
+    <div class="topics">
+      {% for label, rid, blurb in catalog.TOPICS %}
+      <a class="topic reveal plain" href="/readings/{{ rid }}"><span class="topic-name">{{ label }}</span><span class="fine">{{ blurb }}</span><span class="topic-go">{{ catalog.BY_ID[rid].name }} →</span></a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="card offer reveal">
+      <div><p class="eyebrow">Practise with the cards</p><h3>Ask the cards a question</h3><p class="muted" style="margin:6px 0 0">Shuffle the deck, pick three cards, and try reading them yourself before you see what each one means.</p></div>
+      <a class="btn" href="/practice">Shuffle the deck</a>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap split">
+    <div class="portrait reveal"><!-- PLACEHOLDER: <img src="/static/images/ash.webp" alt="Ash"> --><span>Ash's photo goes here</span></div>
+    <div class="reveal">
+      <p class="eyebrow">About Ash</p>
+      <h2>A path passed down, a gift made her own</h2>
+      <p class="muted">Ash grew up watching her mother read tarot, and took up the cards herself. More than ten years on, she reads mostly with the Rider-Waite deck, alongside oracle decks and runes chosen in the moment.</p>
+      <p class="muted">Her style is intuitive, guided, relaxed and gentle.</p>
+      <a class="btn btn-ghost" href="/about">Read Ash's story</a>
+    </div>
+  </div>
+</section>
+
+{% if stories %}
+<section>
+  <div class="wrap">
+    <p class="ornament" aria-hidden="true">✦</p>
+    <p class="eyebrow center">Stories</p>
+    <h2 class="center">From Ash's journal</h2>
+    <div class="grid" style="margin-top:28px">
+      {% for st in stories %}
+      <a class="card reveal plain" href="/stories/{{ st.slug }}"><p class="eyebrow">{{ st.date }}</p><h3>{{ st.title }}</h3><p class="muted">{{ st.summary }}</p></a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endif %}
+
+<section id="testimonials">
+  <div class="wrap">
+    <p class="ornament" aria-hidden="true">✦</p>
+    <p class="eyebrow center">Kind words</p>
+    <h2 class="center">From those who've sat at Ash's table</h2>
+    <div class="grid" style="margin-top:28px">
+      {% for rv in reviews %}
+      <figure class="card reveal" style="margin:0"><blockquote class="quote" style="margin:0 0 16px">“{{ rv.body }}”</blockquote><figcaption class="quote-by">— {{ rv.name }}{% if rv.reading %} · {{ rv.reading }}{% endif %}</figcaption></figure>
+      {% else %}
+      <figure class="card reveal" style="margin:0"><blockquote class="quote" style="margin:0 0 16px">“Kind words from clients will appear here once Ash approves them.”</blockquote><figcaption class="quote-by">— The first review could be yours</figcaption></figure>
+      {% endfor %}
+    </div>
+    <p class="center" style="margin-top:24px"><a class="btn btn-ghost" href="/reviews">Read or leave a review</a></p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap center">
+    <h2>Ready when the stars are</h2>
+    <p class="muted">Readings are for adults 18 and over, for guidance and reflection.</p>
+    <a class="btn" href="/readings">Explore readings</a>
+  </div>
+</section>
+{% endblock %}

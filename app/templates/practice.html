@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% from "_macros.html" import comments_block with context %}
+{% block title %}Ask the cards · EmpressAsh{% endblock %}
+{% block description %}Shuffle the deck, pick three cards and practise reading them yourself, then see what each card means.{% endblock %}
+{% block content %}
+<section class="practice">
+  <div class="wrap center">
+    <p class="eyebrow">Practise with the cards</p>
+    <h1 class="page-title">Ask the cards</h1>
+    <p class="muted" style="max-width:600px;margin:0 auto 26px">Hold a question in your mind and shuffle. Pick three cards for past, present and future. Try reading them yourself first, then turn to their meanings.</p>
+
+    <div class="practice-stage" data-practice>
+      <div class="ask" data-step="ask">
+        <label class="sr-only" for="pq">Your question</label>
+        <input id="pq" data-question maxlength="140" placeholder="Your question (optional)">
+        <button class="btn" type="button" data-shuffle>Shuffle the deck</button>
+      </div>
+
+      <div class="deck-stack" data-stack aria-hidden="true">
+        {% for i in range(7) %}<span class="pcard back" style="--i:{{ i }}"></span>{% endfor %}
+      </div>
+
+      <p class="practice-hint" data-hint aria-live="polite"></p>
+      <div class="fan" data-fan hidden></div>
+
+      <div class="spread" data-spread hidden>
+        {% for pos, help in [("Past", "What has shaped this"), ("Present", "Where you stand now"), ("Future", "Where it may lead")] %}
+        <div class="slot" data-slot>
+          <p class="eyebrow">{{ pos }}</p>
+          <div class="slot-card" data-slot-card><span class="slot-empty">{{ loop.index }}</span></div>
+          <div class="slot-body" hidden>
+            <h3 data-card-name></h3>
+            <label class="fine" for="mine-{{ loop.index }}">{{ help }}: what do you see in this card?</label>
+            <textarea id="mine-{{ loop.index }}" rows="3" maxlength="500" placeholder="Write your own reading first…"></textarea>
+            <button class="btn btn-small btn-ghost" type="button" data-reveal-meaning>Show the meaning</button>
+            <p class="slot-meaning" data-card-meaning hidden></p>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      <div class="practice-done" data-done hidden>
+        <div class="share-row" data-share-url="{{ s.SITE_URL }}/practice" data-share-text="">
+          <button class="btn btn-small" type="button" data-share="native">Share</button>
+          <button class="btn btn-small btn-ghost" type="button" data-share-image>Save image for Instagram</button>
+          <a class="btn btn-small btn-ghost" data-share-wa target="_blank" rel="noopener" href="#">WhatsApp</a>
+          <a class="btn btn-small btn-ghost" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url={{ (s.SITE_URL ~ '/practice')|urlencode }}">LinkedIn</a>
+          <button class="btn btn-small btn-ghost" type="button" data-share="copy">Copy link</button>
+        </div>
+        <p><button class="btn btn-ghost" type="button" data-again>Shuffle again</button> <a class="btn" href="/readings/three-card">Have Ash read these for you</a></p>
+        <p class="fine">This is for practice and reflection. For a personal reading of your situation, book a spread with Ash.</p>
+      </div>
+    </div>
+  </div>
+</section>
+<section style="padding-top:0">
+  <div class="wrap prose">
+    {{ comments_block(comments, error, "/practice") }}
+  </div>
+</section>
+<script type="application/json" id="deck-data">{{ deck|tojson }}</script>
+<script src="/static/js/practice.js" defer></script>
+{% endblock %}
