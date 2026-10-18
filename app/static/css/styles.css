@@ -579,3 +579,19 @@ h1, h2 { letter-spacing: 0.015em; text-shadow: 0 0 40px rgba(248, 215, 148, 0.12
 .checklist li.ok { color: var(--olive); }
 .checklist li.bad { color: #e8a39a; }
 .bad-note { color: #e8a39a; }
+
+/* Calm sound toggle (bottom left; WhatsApp sits bottom right) */
+.ambience { position: fixed; left: 18px; bottom: 18px; z-index: 30; display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 16px 0 12px;
+  border-radius: 999px; border: 1px solid rgba(248, 215, 148, 0.45); background: rgba(14, 24, 21, 0.82); color: var(--gold, #f3d58e);
+  font: inherit; font-size: 0.9rem; cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); box-shadow: 0 8px 26px rgba(0,0,0,0.35); }
+.ambience:focus-visible { outline: 2px solid var(--gold, #f3d58e); outline-offset: 3px; }
+.ambience .amb-on { display: none; align-items: flex-end; gap: 2px; height: 16px; width: 22px; justify-content: center; }
+.ambience .amb-on i { display: block; width: 3px; height: 30%; border-radius: 2px; background: currentColor; animation: amb 1.6s ease-in-out infinite; }
+.ambience .amb-on i:nth-child(2) { animation-delay: -0.4s; } .ambience .amb-on i:nth-child(3) { animation-delay: -0.8s; } .ambience .amb-on i:nth-child(4) { animation-delay: -1.2s; }
+@keyframes amb { 0%, 100% { height: 25%; } 50% { height: 100%; } }
+.ambience.on .amb-on { display: flex; } .ambience.on .amb-off { display: none; }
+.ambience.on { box-shadow: 0 0 26px rgba(248, 215, 148, 0.35), 0 8px 26px rgba(0,0,0,0.35); }
+.ambience.waiting { animation: amb-pulse 2.4s ease-in-out infinite; }
+@keyframes amb-pulse { 50% { box-shadow: 0 0 22px rgba(248, 215, 148, 0.45), 0 8px 26px rgba(0,0,0,0.35); } }
+@media (max-width: 560px) { .ambience { padding: 0; width: 44px; justify-content: center; } .ambience .amb-label { display: none; } }
+@media (prefers-reduced-motion: reduce) { .ambience .amb-on i, .ambience.waiting { animation: none; } .ambience .amb-on i { height: 70%; } }
