@@ -52,7 +52,7 @@
   <div class="table-wrap"><table>
     <tr><th>Joined</th><th>Name</th><th>Contact</th><th>Birthday</th><th>Code</th><th>Referred by</th><th>Credits</th><th>Free reading question</th><th></th></tr>
     {% for m in members %}
-    <tr><td>{{ m.created_at[:10] }}</td><td>{{ m.name }}</td><td><span class="fine">{{ m.email }}<br>{{ m.phone }}</span></td><td>{{ m.birthday }}</td>
+    <tr><td>{{ m.created_at[:10] }}</td><td>{{ m.name }}{% if lookalikes[m.id] %}<br><span class="fine bad-note">⚠ {{ lookalikes[m.id] }}</span>{% endif %}</td><td><span class="fine">{{ m.email }}<br>{{ m.phone }}</span></td><td>{{ m.birthday }}</td>
       <td>{{ m.referral_code }}</td><td>{{ m.referred_by or '' }}</td><td>{{ m.referral_credits }}</td><td class="q">{{ m.free_question or '' }}</td>
       <td><form method="post" action="/admin/members/{{ m.id }}/free-done"><button class="btn btn-small btn-ghost">{{ 'Sent ✓' if m.free_status == 'done' else 'Mark free reading sent' }}</button></form></td></tr>
     {% else %}<tr><td colspan="9" class="muted">No members yet.</td></tr>{% endfor %}
