@@ -1,4 +1,5 @@
 """SQLite storage for members, orders and comments."""
+import logging
 import os
 import secrets
 import sqlite3
@@ -49,9 +50,26 @@ CREATE INDEX IF NOT EXISTS comments_page ON comments(page, hidden);
 """
 
 
+_fallback_warned = False
+
+
 def path() -> str:
-    os.makedirs(settings.DATA_DIR, exist_ok=True)
-    return os.path.join(settings.DATA_DIR, "empressash.db")
+    """Database file. If the Render disk isn't mounted, fall back to a local
+    folder so the site still starts (data there is lost on each deploy)."""
+    global _fallback_warned
+    d = settings.DATA_DIR
+    try:
+        os.makedirs(d, exist_ok=True)
+        if not os.access(d, os.W_OK):
+            raise PermissionError(d)
+    except OSError:
+        d = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+        os.makedirs(d, exist_ok=True)
+        if not _fallback_warned:
+            logging.getLogger("empressash").warning(
+                "DATA_DIR %s is not writable; using %s. Add a Render disk at /var/data to keep data.", settings.DATA_DIR, d)
+            _fallback_warned = True
+    return os.path.join(d, "empressash.db")
 
 
 @contextmanager
