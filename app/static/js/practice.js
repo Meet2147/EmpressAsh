@@ -33,9 +33,6 @@
     slots.forEach(function (s, i) {
       $("[data-slot-card]", s).innerHTML = '<span class="slot-empty">' + (i + 1) + "</span>";
       $(".slot-body", s).hidden = true;
-      $("textarea", s).value = "";
-      $("[data-card-meaning]", s).hidden = true;
-      $("[data-reveal-meaning]", s).hidden = false;
     });
   }
 
@@ -50,6 +47,11 @@
 
   function shuffle() {
     if (busy) return;
+    if (!question.value.trim()) {
+      hint.textContent = "Ask a specific question first.";
+      question.focus();
+      return;
+    }
     busy = true;
     reset();
     hint.textContent = "Shuffling…";
@@ -101,7 +103,6 @@
       holder.innerHTML = '<span class="slot-flip">' + face(card) + "</span>";
       var body = $(".slot-body", slot);
       $("[data-card-name]", body).textContent = card.name;
-      $("[data-card-meaning]", body).textContent = card.meaning;
       wait(250).then(function () {
         $(".slot-flip", holder).classList.add("flipped");
         body.hidden = false;
@@ -114,38 +115,19 @@
   }
 
   function finish() {
-    hint.textContent = "Your three cards are drawn. Read them yourself, then turn to the meanings.";
+    hint.textContent = "Your three cards are drawn.";
     fan.classList.add("gathered");
     setTimeout(function () { fan.hidden = true; fan.classList.remove("gathered"); }, calm ? 0 : 600);
-    var names = picked.map(function (c) { return c.name; }).join(", ");
     var q = question.value.trim();
-    var text = "I asked the cards" + (q ? ' "' + q + '"' : "") + " and drew " + names + ". Try it on EmpressAsh:";
-    var row = $(".share-row", done);
-    row.setAttribute("data-share-text", text);
-    var url = row.getAttribute("data-share-url");
-    $("[data-share-wa]", done).href = "https://wa.me/?text=" + encodeURIComponent(text + " " + url);
+    var note = (q ? "My question: " + q + "\n\n" : "") + "Cards I drew in Ask the cards: " +
+      picked.map(function (c, i) { return ["Past", "Present", "Future"][i] + ": " + c.name; }).join(", ");
+    $("[data-ash-read]", done).href = "/checkout/three-card?format=written&question=" + encodeURIComponent(note);
+    $(".ask").hidden = true;
     done.hidden = false;
-    shuffleBtn.textContent = "Shuffle again";
   }
 
-  slots.forEach(function (s) {
-    $("[data-reveal-meaning]", s).addEventListener("click", function (e) {
-      $("[data-card-meaning]", s).hidden = false;
-      e.currentTarget.hidden = true;
-    });
-  });
   shuffleBtn.addEventListener("click", shuffle);
-  $("[data-again]").addEventListener("click", function () { window.scrollTo({ top: root.offsetTop - 90, behavior: calm ? "auto" : "smooth" }); shuffle(); });
   question.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); shuffle(); } });
   window.addEventListener("resize", layoutFan);
 
-  var imgBtn = $("[data-share-image]");
-  if (imgBtn && window.EA && window.EA.cardImage) imgBtn.addEventListener("click", function () {
-    var q = question.value.trim();
-    window.EA.saveCardImage({
-      title: q ? "“" + q + "”" : "Ask the cards",
-      cards: picked.map(function (c, i) { return { numeral: c.numeral, name: c.name, label: ["Past", "Present", "Future"][i] }; }),
-      filename: "empressash-three-cards.png"
-    }, imgBtn);
-  });
 })();

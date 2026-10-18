@@ -559,3 +559,9 @@ h1, h2 { letter-spacing: 0.015em; text-shadow: 0 0 40px rgba(248, 215, 148, 0.12
 .my-rooms a { display: block; }
 .admin-order textarea { min-height: 320px; font-size: 1rem; }
 .pill.waiting { background: rgba(248,215,148,0.18); color: var(--gold); }
+.btn-big { font-size: 1.2rem; padding: 16px 34px; }
+.practice-done { text-align: center; margin-top: 8px; }
+.checklist { list-style: none; padding: 0; margin: 8px 0; }
+.checklist li { padding: 3px 0; }
+.checklist li.ok { color: var(--olive); }
+.checklist li.bad { color: #e8a39a; }
