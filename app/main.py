@@ -203,7 +203,7 @@ def checkout_submit(request: Request, slug: str, format: str = Form(...), curren
         return fail("Please write the question you'd like Ash to read on.")
     if agree != "yes":
         return fail("Please confirm you've read the policies.")
-    if not settings.payments_ready():
+    if not dodo.can_sell(r["id"], f["id"], currency, amount):
         return fail("Online booking opens very soon. Please check back shortly.")
     if too_many(request, "checkout", 10, 600):
         return fail("Too many attempts. Please wait a few minutes and try again.")
@@ -215,7 +215,7 @@ def checkout_submit(request: Request, slug: str, format: str = Form(...), curren
                   (order_id, token, r["id"], f["id"], currency, amount, form["name"], form["email"], form["phone"],
                    form["birthday"], form["question"]))
     try:
-        session = dodo.create_checkout(order_id=order_id, product_name=f"{r['name']} · {f['label']}",
+        session = dodo.create_checkout(order_id=order_id, reading=r["id"], fmt=f["id"], product_name=f"{r['name']} · {f['label']}",
                                        amount_minor=amount * 100, currency=currency,
                                        name=form["name"], email=form["email"], phone=form["phone"],
                                        return_path=f"/room/{token}")
@@ -500,7 +500,7 @@ def admin(request: Request):
     return render(request, "admin.html", **admin_context())
 
 
-def admin_context(pay_checks=None) -> dict:
+def admin_context(pay_checks=None, pay_made=None) -> dict:
     with db.conn() as c:
         members = c.execute("SELECT * FROM members ORDER BY id DESC LIMIT 500").fetchall()
         orders = c.execute("""SELECT o.*, (SELECT COUNT(*) FROM messages m WHERE m.order_id=o.id AND m.sender='client'
@@ -513,18 +513,31 @@ def admin_context(pay_checks=None) -> dict:
                         if m["birthday"][5:7] == f"{today.month:02d}"], key=lambda m: m["birthday"][8:10])
     return dict(members=members, orders=orders, comments=comments, birthdays=bdays, reviews=reviews,
                 month=today.strftime("%B"), today_day=f"{today.day:02d}",
-                pay_setup=payment_setup(), pay_checks=pay_checks, pay_error=dodo.last_error)
+                pay_setup=payment_setup(), pay_checks=pay_checks, pay_error=dodo.last_error,
+                pay_products=dodo.products_status(), pay_made=pay_made)
 
 
 def payment_setup() -> list[dict]:
     """Which payment settings are filled in on Render (never their values)."""
-    return [
-        {"name": "DODO_PAYMENTS_API_KEY", "ok": bool(settings.DODO_API_KEY)},
-        {"name": "DODO_PRODUCT_INR", "ok": bool(settings.DODO_PRODUCT_INR)},
-        {"name": "DODO_PRODUCT_USD", "ok": bool(settings.DODO_PRODUCT_USD)},
-        {"name": "DODO_PAYMENTS_WEBHOOK_KEY", "ok": bool(settings.DODO_WEBHOOK_SECRET)},
-        {"name": "SITE_URL", "ok": settings.SITE_URL.startswith("https://")},
-    ]
+    rows = [{"name": "DODO_PAYMENTS_API_KEY", "ok": bool(settings.DODO_API_KEY)}]
+    if not dodo.products_status()[0]:
+        # Only needed when the reading products haven't been created from the admin.
+        rows += [{"name": "DODO_PRODUCT_INR", "ok": bool(settings.DODO_PRODUCT_INR)},
+                 {"name": "DODO_PRODUCT_USD", "ok": bool(settings.DODO_PRODUCT_USD)}]
+    rows += [{"name": "DODO_PAYMENTS_WEBHOOK_KEY", "ok": bool(settings.DODO_WEBHOOK_SECRET)},
+             {"name": "SITE_URL", "ok": settings.SITE_URL.startswith("https://")}]
+    return rows
+
+
+@app.post("/admin/payments/create-products", response_class=HTMLResponse)
+def admin_create_products(request: Request):
+    if not is_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    if not settings.DODO_API_KEY:
+        made = {"made": 0, "done": 0, "needed": 0, "errors": ["Add DODO_PAYMENTS_API_KEY in Render first."]}
+    else:
+        made = dodo.create_products()
+    return render(request, "admin.html", **admin_context(pay_made=made))
 
 
 @app.post("/admin/payments/check", response_class=HTMLResponse)

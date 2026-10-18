@@ -19,9 +19,85 @@ def _record(msg: str):
     last_error["message"] = msg[:400]
 
 
+def _headers():
+    return {"Authorization": f"Bearer {settings.DODO_API_KEY}"}
+
+
+def wanted_products():
+    """Every product the site sells: (reading, format, currency, price in whole units)."""
+    from .catalog import READINGS, FORMAT_IDS
+    for r in READINGS:
+        for i, fmt in enumerate(FORMAT_IDS):
+            for cur in ("inr", "usd"):
+                price = r[cur][i]
+                if price is not None:
+                    yield r, fmt, cur, price
+
+
+def stored_product(reading: str, fmt: str, currency: str, price: int) -> str | None:
+    """The Dodo product made for this exact reading and price in the current mode."""
+    from . import db
+    with db.conn() as c:
+        row = c.execute("SELECT product_id, price FROM dodo_products WHERE mode=? AND reading=? AND format=? AND currency=?",
+                        (settings.DODO_MODE, reading, fmt, currency)).fetchone()
+    return row["product_id"] if row and row["price"] == price else None
+
+
+def products_status() -> tuple[int, int]:
+    """(created, needed) for the current mode and prices."""
+    wanted = list(wanted_products())
+    done = sum(1 for r, fmt, cur, price in wanted if stored_product(r["id"], fmt, cur, price))
+    return done, len(wanted)
+
+
+def create_products() -> dict:
+    """Creates any missing products in Dodo and remembers their IDs. Safe to run again."""
+    from . import db
+    from .catalog import format_by_id
+    made, errors = 0, []
+    with httpx.Client(timeout=20, headers=_headers()) as client:
+        for r, fmt, cur, price in wanted_products():
+            if stored_product(r["id"], fmt, cur, price):
+                continue
+            body = {
+                "name": f"{r['name']} · {format_by_id(fmt)['label']}",
+                "description": r["desc"],
+                "tax_category": "digital_products",
+                "price": {"type": "one_time_price", "currency": cur.upper(), "price": price * 100,
+                          "discount": 0, "purchasing_power_parity": False},
+                "metadata": {"reading": r["id"], "format": fmt},
+            }
+            try:
+                resp = client.post(f"{settings.DODO_BASE_URL}/products", json=body)
+            except httpx.HTTPError as e:
+                errors.append(f"Could not reach Dodo: {e}")
+                break
+            if resp.status_code == 401:
+                errors.append("Dodo rejected the API key (401). Is it a key for the same mode as DODO_PAYMENTS_MODE?")
+                break
+            if resp.status_code >= 400 or not (resp.json() or {}).get("product_id"):
+                errors.append(f"{body['name']} ({cur.upper()}): Dodo returned {resp.status_code}: {resp.text[:200]}")
+                if len(errors) >= 3:
+                    break
+                continue
+            with db.conn() as c:
+                c.execute("""INSERT INTO dodo_products(mode, reading, format, currency, price, product_id) VALUES (?,?,?,?,?,?)
+                             ON CONFLICT(mode, reading, format, currency) DO UPDATE SET price=excluded.price,
+                             product_id=excluded.product_id""",
+                          (settings.DODO_MODE, r["id"], fmt, cur, price, resp.json()["product_id"]))
+            made += 1
+    done, needed = products_status()
+    return {"made": made, "done": done, "needed": needed, "errors": errors}
+
+
 def check_setup() -> list[dict]:
     """Asks Dodo about each product with the current key. Returns one row per check for the admin."""
     rows = []
+    done, needed = products_status()
+    if done:
+        rows.append({"name": "Reading products", "ok": done == needed,
+                     "detail": f"{done} of {needed} created in Dodo" + ("" if done == needed else ". Press Create products in Dodo to finish.")})
+        return rows
     for label, pid, cur in (("INR product", settings.DODO_PRODUCT_INR, "INR"), ("USD product", settings.DODO_PRODUCT_USD, "USD")):
         if not pid:
             rows.append({"name": label, "ok": False, "detail": "Not set in Render"})
@@ -52,13 +128,27 @@ def check_setup() -> list[dict]:
     return rows
 
 
-def create_checkout(*, order_id: str, product_name: str, amount_minor: int, currency: str,
+def can_sell(reading: str, fmt: str, currency: str, price: int) -> bool:
+    if not settings.DODO_API_KEY:
+        return False
+    if stored_product(reading, fmt, currency, price):
+        return True
+    return bool(settings.DODO_PRODUCT_INR if currency == "inr" else settings.DODO_PRODUCT_USD)
+
+
+def create_checkout(*, order_id: str, reading: str, fmt: str, product_name: str, amount_minor: int, currency: str,
                     name: str, email: str, phone: str, return_path: str) -> dict:
     """Returns {"session_id", "checkout_url"}. Amount is in paise or cents."""
-    product_id = settings.DODO_PRODUCT_INR if currency == "inr" else settings.DODO_PRODUCT_USD
+    product_id = stored_product(reading, fmt, currency, amount_minor // 100)
+    if product_id:
+        # This reading's own product, already priced in Dodo.
+        item = {"product_id": product_id, "quantity": 1}
+    else:
+        # Fallback: a "pay what you want" product from Render, so the server sets the price.
+        product_id = settings.DODO_PRODUCT_INR if currency == "inr" else settings.DODO_PRODUCT_USD
+        item = {"product_id": product_id, "quantity": 1, "amount": amount_minor}
     body = {
-        # A "pay what you want" product, so the server sets the exact price.
-        "product_cart": [{"product_id": product_id, "quantity": 1, "amount": amount_minor}],
+        "product_cart": [item],
         "customer": {"name": name, "email": email, "phone_number": phone},
         "return_url": f"{settings.SITE_URL}{return_path}",
         "cancel_url": f"{settings.SITE_URL}/readings",

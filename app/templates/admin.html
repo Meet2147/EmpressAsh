@@ -25,7 +25,13 @@
     <ul class="checklist">{% for row in pay_checks %}<li class="{{ 'ok' if row.ok else 'bad' }}">{{ '✓' if row.ok else '✗' }} {{ row.name }}: <span class="fine">{{ row.detail }}</span></li>{% endfor %}</ul>
     {% endif %}
     {% if pay_error.message %}<p class="form-error">Last checkout error ({{ pay_error.when }}): {{ pay_error.message }}</p>{% endif %}
-    <form method="post" action="/admin/payments/check"><button class="btn btn-small btn-ghost">Check with Dodo</button></form>
+    <p class="fine" style="margin-top:14px">Reading products in Dodo ({{ 'live' if s.DODO_MODE == 'live_mode' else 'test' }} mode): {{ pay_products[0] }} of {{ pay_products[1] }} created.</p>
+    {% if pay_made %}
+      {% if pay_made.errors %}{% for e in pay_made.errors %}<p class="form-error">{{ e }}</p>{% endfor %}
+      {% else %}<p class="ok">✓ Created {{ pay_made.made }} new product{{ '' if pay_made.made == 1 else 's' }}. All {{ pay_made.done }} readings are ready to sell.</p>{% endif %}
+    {% endif %}
+    <form method="post" action="/admin/payments/create-products" style="display:inline"><button class="btn btn-small">{{ 'Update products in Dodo' if pay_products[0] else 'Create products in Dodo' }}</button></form>
+    <form method="post" action="/admin/payments/check" style="display:inline"><button class="btn btn-small btn-ghost">Check with Dodo</button></form>
   </div>
 
   <h2 id="orders">Orders</h2>
