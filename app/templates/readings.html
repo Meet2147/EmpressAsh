@@ -15,6 +15,10 @@
       <div class="card"><p class="eyebrow">Private{% if not s.LIVE_READINGS_OPEN %} · coming soon{% endif %}</p><h3>Voice call + report</h3><ul><li>Private audio consultation for the listed duration</li><li>The same depth of interpretation as video</li><li>Written summary within 48 hours</li></ul></div>
       <div class="card"><p class="eyebrow">Open now</p><h3>Written reading</h3><ul><li>No live call or appointment</li><li>Personal interpretation of your spread and question</li><li>Themes, challenges, opportunities and guidance</li><li>Delivered within 48 hours of payment</li></ul></div>
     </div>
+    <div class="card offer" style="margin-bottom:16px">
+      <div><p class="eyebrow">Save with a bundle</p><h3>3, 5 or 10 written readings, for up to {{ catalog.bundle_save(catalog.BUNDLES[-1], 'inr') }}% less</h3></div>
+      <a class="btn btn-ghost" href="/bundles">See bundles</a>
+    </div>
     <div class="card offer" style="margin-bottom:32px">
       <div><p class="eyebrow">New here?</p><h3>Your first reading is free</h3></div>
       <a class="btn" href="/join">Claim your free reading</a>

@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Your reading bundle · EmpressAsh{% endblock %}
+{% block content %}
+{% set paid = o.status in ('paid', 'delivered') %}
+{% set first = o.name.split(' ')[0] %}
+<section class="room" data-room data-token="{{ o.token }}" data-name="{{ b.name }}" data-date="{{ o.created_at[:10] }}">
+  <div class="wrap prose">
+    <p class="eyebrow center">Your reading bundle</p>
+    {% if o.status == 'pending' %}
+      <h1 class="page-title center">Almost there, {{ first }}</h1>
+      <p class="muted center">We're waiting for your payment to be confirmed. This usually takes a few seconds.</p>
+      <p class="center"><a class="btn btn-ghost" href="/room/{{ o.token }}">Refresh</a></p>
+    {% elif o.status == 'review' %}
+      <h1 class="page-title center">We're checking your payment, {{ first }}</h1>
+      <p class="muted center">Your payment arrived but needs a quick check by Ash. You don't need to do anything; she will be in touch.</p>
+    {% elif o.status in ('refunded', 'disputed') %}
+      <h1 class="page-title center">This bundle is closed</h1>
+      <p class="muted center">The payment for this bundle was {{ 'refunded' if o.status == 'refunded' else 'disputed' }}. Please contact Ash with any questions.</p>
+    {% elif not paid %}
+      <h1 class="page-title center">Payment not completed</h1>
+      <p class="muted center">The payment didn't go through, so you haven't been charged.</p>
+      <p class="center"><a class="btn" href="/bundles">Try again</a></p>
+    {% else %}
+      <h1 class="page-title center">Welcome, {{ first }}</h1>
+      <p class="center credits-left"><span class="bundle-n">{{ left }}</span><br><span class="muted">reading{{ 's' if left != 1 }} left to ask</span></p>
+      <div class="room-save card">
+        <p><strong>Keep this page.</strong> It's how you use your bundle. Bookmark it, or add it to your home screen, and keep the link to yourself.</p>
+        <div class="share-row" data-share-url="{{ s.SITE_URL }}/room/{{ o.token }}" data-share-text="My EmpressAsh bundle">
+          <button class="btn btn-small btn-ghost" type="button" data-share="copy">Copy my link</button>
+        </div>
+      </div>
+      {% if left > 0 %}
+      <form class="card form" method="post" action="/room/{{ o.token }}/ask">
+        {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+        <label for="question">Ask a specific question</label>
+        <textarea id="question" name="question" rows="5" required maxlength="1500" placeholder="What would you like guidance on?">{{ question }}</textarea>
+        <input type="text" name="website" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+        <p><button class="btn" type="submit">Send to Ash (uses 1 reading)</button></p>
+        <p class="fine">Ash reads a 3 Card Spread for you: past, present and future. It arrives in its own reading room within 48 hours.</p>
+      </form>
+      {% else %}
+        {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+        <p class="center muted">You've asked all your readings. <a href="/bundles">Get another bundle</a>.</p>
+      {% endif %}
+      {% if asked %}
+      <h2>Your questions</h2>
+      <ul class="asked-list">
+        {% for a in asked %}
+        <li class="card"><a class="plain" href="/room/{{ a.token }}"><span class="fine">{{ a.created_at[:10] }} · {{ 'Ready' if a.progress == 'ready' else ('Ash is reading' if a.progress == 'reading' else 'Received') }}</span><br>{{ a.question[:140] }}{{ '…' if a.question|length > 140 }}</a></li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

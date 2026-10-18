@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_macros.html" import currency_switch with context %}
+{% block title %}Reading bundles · EmpressAsh{% endblock %}
+{% block description %}Save with a bundle of written tarot readings from Ash. Ask each question whenever you like.{% endblock %}
+{% block content %}
+{% set single = catalog.BY_ID[catalog.BUNDLE_READING] %}
+<section>
+  <div class="wrap">
+    <p class="eyebrow center">Reading bundles</p>
+    <h1 class="page-title center">Choose your bundle</h1>
+    <p class="muted center" style="max-width:620px;margin:0 auto">Each reading is a written 3 Card Spread from Ash (past, present and future) on any question you choose. Buy a few together for less, and ask each one whenever you're ready.</p>
+    <div class="center" style="margin:18px 0 6px">{{ currency_switch() }}</div>
+
+    <form class="bundle-form" method="post" action="/bundles">
+      {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+      <input type="hidden" name="currency" value="{{ form.currency or 'usd' }}" data-currency-input>
+      <fieldset class="bundle-grid">
+        <legend class="sr-only">Bundle</legend>
+        {% for b in catalog.BUNDLES %}
+        <label class="bundle{% if b.popular %} popular{% endif %}">
+          <input type="radio" name="bundle" value="{{ b.id }}" {% if form.bundle == b.id %}checked{% endif %} required>
+          {% if b.popular %}<span class="bundle-flag">Most popular</span>{% endif %}
+          {% if b.n > 1 %}<span class="bundle-save"><span class="cur-inr">Save {{ catalog.bundle_save(b, 'inr') }}%</span><span class="cur-usd">Save {{ catalog.bundle_save(b, 'usd') }}%</span></span>{% else %}<span class="bundle-save ghost">Single</span>{% endif %}
+          <span class="bundle-n">{{ b.n }}</span>
+          <span class="bundle-unit">reading{{ 's' if b.n > 1 }}</span>
+          <span class="bundle-price"><span class="cur-inr">{{ catalog.fmt_price(b.inr, 'inr') }}</span><span class="cur-usd">{{ catalog.fmt_price(b.usd, 'usd') }}</span></span>
+          <span class="bundle-each fine"><span class="cur-inr">₹{{ '%.0f' % catalog.bundle_each(b, 'inr') }} each</span><span class="cur-usd">${{ '%.2f' % catalog.bundle_each(b, 'usd') }} each</span></span>
+        </label>
+        {% endfor %}
+      </fieldset>
+
+      <div class="card form" style="margin-top:22px">
+        <div class="field-row">
+          <div><label for="name">Full name</label><input id="name" name="name" required maxlength="80" autocomplete="name" value="{{ form.name or '' }}"></div>
+          <div><label for="email">Email (your readings are linked to it)</label><input id="email" name="email" type="email" required maxlength="120" autocomplete="email" value="{{ form.email or '' }}"></div>
+        </div>
+        <div class="field-row">
+          <div><label for="phone">Mobile (with country code)</label><input id="phone" name="phone" type="tel" required maxlength="25" autocomplete="tel" placeholder="+91 98765 43210" value="{{ form.phone or '' }}"></div>
+          <div><label for="birthday">Date of birth</label><input id="birthday" name="birthday" type="date" required value="{{ form.birthday or '' }}"></div>
+        </div>
+        <label class="check"><input type="checkbox" name="agree" value="yes" required> I'm 18 or older and have read the <a href="/policies" target="_blank">policies</a>.</label>
+        <p><button class="btn" type="submit">Continue to secure payment</button></p>
+        <p class="fine">You'll pay on Dodo Payments' secure page. Afterwards you arrive on your bundle's private page, where you ask your questions one at a time. Each reading arrives in its own reading room within 48 hours.</p>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

@@ -129,6 +129,7 @@ def conn():
 
 # Columns added after the first release; added on start if an older database lacks them.
 ORDER_COLUMNS = {
+    "paid_with": "TEXT",        # for a reading paid with a bundle credit: the bundle order's ID
     "token": "TEXT",            # secret part of the client's reading-room link
     "progress": "TEXT NOT NULL DEFAULT 'received'",  # received / reading / ready
     "reading_text": "TEXT",     # Ash's written reading (Markdown)
@@ -205,3 +206,14 @@ def new_token() -> str:
 
 def new_order_id() -> str:
     return "EA" + secrets.token_hex(5).upper()
+
+
+def credits_left(c, email: str) -> int:
+    """Bundle credits bought with this email (paid bundles only) minus readings already asked with them."""
+    return c.execute(CREDITS_LEFT_SQL, (email, email)).fetchone()[0]
+
+
+CREDITS_LEFT_SQL = """SELECT
+    (SELECT COALESCE(SUM(CAST(substr(reading, 8) AS INTEGER)), 0) FROM orders
+      WHERE reading LIKE 'bundle-%' AND status IN ('paid', 'delivered') AND lower(email) = lower(?))
+  - (SELECT COUNT(*) FROM orders WHERE paid_with IS NOT NULL AND lower(email) = lower(?))"""

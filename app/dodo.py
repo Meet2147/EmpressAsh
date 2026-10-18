@@ -33,6 +33,10 @@ def wanted_products():
                 price = r[cur][i]
                 if price is not None:
                     yield r, fmt, cur, price
+    from .catalog import BUNDLES
+    for b in BUNDLES:
+        for cur in ("inr", "usd"):
+            yield b, "credits", cur, b[cur]
 
 
 def stored_product(reading: str, fmt: str, currency: str, price: int) -> str | None:
@@ -61,7 +65,7 @@ def create_products() -> dict:
             if stored_product(r["id"], fmt, cur, price):
                 continue
             body = {
-                "name": f"{r['name']} · {format_by_id(fmt)['label']}",
+                "name": f"{r['name']} · {(format_by_id(fmt) or {'label': 'Reading credits'})['label']}",
                 "description": r["desc"],
                 "tax_category": "digital_products",
                 "price": {"type": "one_time_price", "currency": cur.upper(), "price": price * 100,
