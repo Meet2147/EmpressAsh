@@ -61,6 +61,16 @@ CREATE TABLE IF NOT EXISTS messages (
     body TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+-- One Dodo product per reading, format and currency, created from the admin.
+CREATE TABLE IF NOT EXISTS dodo_products (
+    mode TEXT NOT NULL,
+    reading TEXT NOT NULL,
+    format TEXT NOT NULL,
+    currency TEXT NOT NULL,
+    price INTEGER NOT NULL,
+    product_id TEXT NOT NULL,
+    PRIMARY KEY (mode, reading, format, currency)
+);
 CREATE INDEX IF NOT EXISTS messages_order ON messages(order_id, id);
 CREATE INDEX IF NOT EXISTS comments_page ON comments(page, hidden);
 """

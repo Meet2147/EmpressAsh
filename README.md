@@ -49,7 +49,7 @@ Without Dodo settings the site works, and checkout says online payment is being 
 | `ADMIN_PASSWORD` | a long password for `/admin` |
 | `DODO_PAYMENTS_API_KEY` | API key from Dodo (Developer → API keys). Never put it in code or chat. |
 | `DODO_PAYMENTS_MODE` | `test_mode` while testing, `live_mode` to take real payments |
-| `DODO_PRODUCT_INR` / `DODO_PRODUCT_USD` | IDs of two one-time products set to **Pay What You Want**, one priced in INR and one in USD. The server sets the exact price. |
+| `DODO_PRODUCT_INR` / `DODO_PRODUCT_USD` | Optional. Not needed if you press **Create products in Dodo** in the admin, which makes one product per reading, format and currency and remembers the IDs. Otherwise, two Pay What You Want products (INR and USD) used as a fallback. |
 | `DODO_PAYMENTS_WEBHOOK_KEY` | In Dodo, add a webhook to `https://<SITE_URL>/webhooks/dodo` for payment events and paste its secret here |
 | `LIVE_READINGS_OPEN` | `false` until live calls launch, then `true` |
 | `CAL_LINK` | Cal.com event link for live sessions, e.g. `https://cal.com/ash/reading` (see below) |
