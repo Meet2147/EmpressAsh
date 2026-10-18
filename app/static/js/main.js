@@ -258,6 +258,46 @@
       }, { passive: true });
       document.addEventListener("mouseleave", function () { light.style.opacity = "0"; });
     }
+  } else if (!calm && "ontouchstart" in window) {
+    /* Phones: a wand follows the finger, lights up what it touches and leaves sparks. */
+    document.documentElement.classList.add("touch-wand-on");
+    var tLight = document.createElement("div"), tWand = document.createElement("div");
+    tLight.className = "wand-light touch"; tWand.className = "touch-wand";
+    document.body.appendChild(tLight); document.body.appendChild(tWand);
+    var tLast = 0, tHide = null, lit = null;
+    var LIT = ".tcard, .card, .reading, .btn, .pcard, a, button";
+    var sparkAt = function (x, y) {
+      var sp = document.createElement("span");
+      sp.className = "spark";
+      sp.style.left = x + "px"; sp.style.top = y + "px";
+      sp.style.setProperty("--dx", (Math.random() * 40 - 20).toFixed(0) + "px");
+      sp.style.setProperty("--dy", (Math.random() * 30 + 8).toFixed(0) + "px");
+      document.body.appendChild(sp);
+      setTimeout(function () { sp.remove(); }, 800);
+    };
+    var touchAt = function (e, burst) {
+      var t = e.touches[0]; if (!t) return;
+      var x = t.clientX, y = t.clientY;
+      clearTimeout(tHide);
+      tLight.style.opacity = "1"; tWand.style.opacity = "1";
+      tLight.style.transform = "translate(" + x + "px," + y + "px)";
+      tWand.style.transform = "translate(" + x + "px," + y + "px)";
+      var now = Date.now();
+      if (burst) { for (var i = 0; i < 6; i++) sparkAt(x, y); tLast = now; }
+      else if (now - tLast > 40) { tLast = now; sparkAt(x, y); }
+      var el = document.elementFromPoint(x, y), hit = el && el.closest(LIT);
+      if (hit !== lit) { if (lit) lit.classList.remove("lumos"); lit = hit; if (lit) lit.classList.add("lumos"); }
+    };
+    var touchEnd = function () {
+      tHide = setTimeout(function () {
+        tLight.style.opacity = "0"; tWand.style.opacity = "0";
+        if (lit) { lit.classList.remove("lumos"); lit = null; }
+      }, 700);
+    };
+    document.addEventListener("touchstart", function (e) { touchAt(e, true); }, { passive: true });
+    document.addEventListener("touchmove", function (e) { touchAt(e, false); }, { passive: true });
+    document.addEventListener("touchend", touchEnd, { passive: true });
+    document.addEventListener("touchcancel", touchEnd, { passive: true });
   }
 
   /* ---------- Reading cards: deal in, tilt, turn over ---------- */

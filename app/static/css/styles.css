@@ -227,6 +227,19 @@ section { padding: clamp(56px, 9vw, 110px) 0; }
   #site-nav a:not(.btn):hover, .footer-links a:hover { text-shadow: 0 0 12px rgba(248, 215, 148, 0.9); }
 }
 
+/* Phones: the same wand, light and sparks follow the finger, and what it touches glows ("lumos") */
+html.touch-wand-on .wand-light.touch { position: fixed; left: 0; top: 0; width: 260px; height: 260px; margin: -130px 0 0 -130px; border-radius: 50%; pointer-events: none; z-index: 40;
+  background: radial-gradient(circle, rgba(248, 215, 148, 0.2) 0%, rgba(248, 215, 148, 0.07) 35%, transparent 70%); mix-blend-mode: screen; transition: opacity 0.4s ease; opacity: 0; will-change: transform; }
+html.touch-wand-on .touch-wand { position: fixed; left: 0; top: 0; width: 64px; height: 64px; margin: -8px 0 0 -8px; pointer-events: none; z-index: 42; opacity: 0;
+  background: url("../images/wand.svg") no-repeat 0 0 / 64px 64px; filter: drop-shadow(0 0 6px rgba(251, 231, 176, 0.7)); transition: opacity 0.4s ease; will-change: transform; }
+html.touch-wand-on .spark { position: fixed; width: 5px; height: 5px; border-radius: 50%; pointer-events: none; z-index: 41; background: #fbe7b0; box-shadow: 0 0 10px 3px rgba(251, 231, 176, 0.8); animation: spark 0.8s ease-out forwards; }
+@keyframes spark { to { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.2); } }
+.card.lumos, .reading.lumos, .pcard.lumos { border-color: rgba(248, 215, 148, 0.75); box-shadow: 0 0 40px rgba(248, 215, 148, 0.25), inset 0 0 30px rgba(248, 215, 148, 0.08); transition: box-shadow 0.3s ease, border-color 0.3s ease; }
+.tcard.lumos .glyph { filter: drop-shadow(0 0 16px rgba(248, 215, 148, 0.9)); }
+.tcard.lumos { filter: drop-shadow(0 0 22px rgba(248, 215, 148, 0.35)); }
+.btn.lumos { box-shadow: 0 0 34px rgba(248, 215, 148, 0.6); }
+a.lumos:not(.btn) { text-shadow: 0 0 12px rgba(248, 215, 148, 0.9); }
+
 /* ---------- App pages ---------- */
 html.inr .cur-usd, html.usd .cur-inr { display: none; }
 .page-title { font-size: clamp(2.4rem, 6vw, 4rem); }
