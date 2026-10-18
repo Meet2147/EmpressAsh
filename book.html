@@ -11,7 +11,7 @@
 <link rel="icon" href="images/favicon.svg" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;1,400&family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=EB+Garamond:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body data-page="book">
@@ -25,12 +25,14 @@
     <p class="muted" style="max-width:720px">Live readings run Thursday to Sunday, 6–8pm IST, and need at least one week's notice. Ash takes up to five readings a week to protect her energy.</p>
     <div class="booking" id="booking" style="margin-top:32px">
       <aside class="card">
+        <div id="pickers">
         <label for="pick-reading">Reading</label>
         <select id="pick-reading"></select>
         <label for="pick-format">Format</label>
         <select id="pick-format"></select>
         <label>Currency</label>
         <div class="currency" role="group" aria-label="Currency"><button data-currency="inr">₹ INR</button><button data-currency="usd">$ USD</button></div>
+        </div>
         <div id="summary" style="margin-top:24px"></div>
       </aside>
       <div class="card">

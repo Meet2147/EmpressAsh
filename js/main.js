@@ -25,6 +25,7 @@
   }
   var currency = detectCurrency();
   function price(r, fIdx) {
+    if (r.inr[fIdx] == null) return "On request";
     return currency === "inr" ? "₹" + r.inr[fIdx].toLocaleString("en-IN") : "$" + r.usd[fIdx];
   }
   function setCurrency(c) {
@@ -156,6 +157,7 @@
       rSel.addEventListener("change", function () { calLoaded = false; renderBooking(); });
       fSel.addEventListener("change", function () { calLoaded = false; renderBooking(); });
     }
+    if (params.get("free") === "1") { renderFree(); return; }
     var r = READINGS.filter(function (x) { return x.id === rSel.value; })[0] || READINGS[0];
     var fIdx = Math.max(0, FORMATS.map(function (f) { return f.id; }).indexOf(fSel.value));
     var f = FORMATS[fIdx];
@@ -183,7 +185,7 @@
 
     // Step: pay in full via Dodo
     var key = r.id + ":" + f.id + ":" + currency;
-    var link = SITE.dodo[key];
+    var link = r.inr[fIdx] == null ? null : SITE.dodo[key];
     var pay = $("#pay-btn");
     if (isSet(link)) {
       pay.href = link; pay.classList.remove("disabled"); pay.removeAttribute("aria-disabled");
@@ -192,8 +194,25 @@
     } else {
       pay.removeAttribute("href"); pay.classList.add("disabled"); pay.setAttribute("aria-disabled", "true");
       pay.textContent = "Payment link coming soon";
-      $("#pay-note").textContent = "Online payment is being set up. Message Ash on WhatsApp or email to complete your booking.";
+      $("#pay-note").textContent = r.inr[fIdx] == null
+        ? "This reading is priced on request. Message Ash on WhatsApp or email for details."
+        : "Online payment is being set up. Message Ash on WhatsApp or email to complete your booking.";
     }
+  }
+
+  function renderFree() {
+    $("#pickers").hidden = true;
+    $("#step-pay").hidden = true;
+    $("#step-time").hidden = false;
+    $("#step-time h3").innerHTML = '<span class="step-num">1</span>Book your free first reading';
+    $("#summary").innerHTML = '<h3>Your first reading</h3><p class="price big">Free</p>' +
+      '<p class="muted">One free reading for new clients. When you book, please share your name, email, mobile number and date of birth.</p>';
+    if (calLoaded) return;
+    var target = $("#cal-inline");
+    target.classList.toggle("live", isSet(SITE.calFree));
+    if (isSet(SITE.calFree)) loadCal(SITE.calFree, { name: "Free first reading" }, { label: "Free" });
+    else target.innerHTML = '<div class="placeholder">Free first-reading booking opens soon. Until then, message Ash on WhatsApp with your name, email, mobile number and date of birth.</div>';
+    calLoaded = true;
   }
 
   function loadCal(calLink, r, f) {
@@ -222,6 +241,35 @@
     var v = SITE.social[a.getAttribute("data-social")];
     if (isSet(v)) a.href = v; else a.remove();
   });
+
+  /* ---------- Wand cursor ---------- */
+  var fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  var calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (fine) {
+    document.documentElement.classList.add("wand");
+    if (!calm) {
+      var light = document.createElement("div");
+      light.className = "wand-light"; light.style.opacity = "0";
+      document.body.appendChild(light);
+      var lastSpark = 0;
+      document.addEventListener("mousemove", function (e) {
+        light.style.opacity = "1";
+        light.style.transform = "translate(" + e.clientX + "px," + e.clientY + "px)";
+        var now = Date.now();
+        if (now - lastSpark > 45) {
+          lastSpark = now;
+          var sp = document.createElement("span");
+          sp.className = "spark";
+          sp.style.left = e.clientX + "px"; sp.style.top = e.clientY + "px";
+          sp.style.setProperty("--dx", (Math.random() * 30 - 15).toFixed(0) + "px");
+          sp.style.setProperty("--dy", (Math.random() * 24 + 6).toFixed(0) + "px");
+          document.body.appendChild(sp);
+          setTimeout(function () { sp.remove(); }, 800);
+        }
+      }, { passive: true });
+      document.addEventListener("mouseleave", function () { light.style.opacity = "0"; });
+    }
+  }
 
   /* ---------- Reveal on scroll ---------- */
   if ("IntersectionObserver" in window) {

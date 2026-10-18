@@ -23,6 +23,9 @@ window.SITE = {
   // Cal.com event used for live readings, as "username/event-slug".
   // Set per spread in calEvents below if Ash creates one event per duration.
   calDefault: "PLACEHOLDER/reading",
+  // Free first reading: a separate Cal.com event whose booking form asks for
+  // name, email, mobile number and date of birth (set those as required questions in Cal.com).
+  calFree: "PLACEHOLDER/first-reading-free",
   calEvents: {
     // "celtic-cross": "empressash/celtic-cross",
   },
@@ -42,7 +45,7 @@ window.FORMATS = [
   { id: "written", label: "Written reading", short: "Written", live: false },
 ];
 
-// Prices are [video, voice, written].
+// Prices are [video, voice, written]. Use null for "price on request".
 window.READINGS = [
   { id: "three-card", name: "3 Card Spread", tag: "Past · Present · Future",
     desc: "A snapshot of past influences, present circumstances and possible direction.",
@@ -89,4 +92,8 @@ window.READINGS = [
   { id: "life-guidance", name: "Life Guidance & Next Steps", tag: "Clarity & direction",
     desc: "A supportive reading focused on the actions, changes and choices that can help you move forward with more clarity and confidence.",
     duration: "30–45 mins", inr: [1299, 999, 699], usd: [28, 22, 15] },
+  { id: "rune", name: "Rune Reading", tag: "Wisdom of the runes",
+    desc: "Guidance drawn from the ancient runes.",
+    duration: "To be confirmed", // PLACEHOLDER: Ash to send description, duration and prices
+    inr: [null, null, null], usd: [null, null, null] },
 ];

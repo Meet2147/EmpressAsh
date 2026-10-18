@@ -4,7 +4,7 @@ Static website for EmpressAsh (tarot, oracle and energy readings with Ash). Plai
 
 **Pages:** Home (with testimonials), About, Readings (15 spreads × 3 formats, INR and USD), Book, Contact, Policies.
 **Booking:** Cal.com inline embed. **Payment:** Dodo Payments hosted checkout links, paid in full.
-**Extras:** WhatsApp chat button, 18+ confirmation on first visit, currency picked automatically (INR in India, USD elsewhere) with a manual switch.
+**Extras:** wand cursor that lights up what it touches (mouse only), a free first reading booked through its own Cal.com event, WhatsApp chat button, 18+ confirmation on first visit, currency picked automatically (INR in India, USD elsewhere) with a manual switch.
 
 ## Run locally
 
@@ -22,8 +22,9 @@ Almost everything lives in [`js/config.js`](js/config.js):
 | Email, phone, WhatsApp number | `SITE.contact` |
 | Instagram, YouTube | `SITE.social` |
 | Cal.com booking link | `SITE.calDefault` (or per spread in `SITE.calEvents`) |
+| Free first reading (Cal.com event) | `SITE.calFree` |
 | Dodo checkout links | `SITE.dodo["<spread-id>:<video\|voice\|written>:<inr\|usd>"]` |
-| Reading names, descriptions, durations, prices | `READINGS` |
+| Reading names, descriptions, durations, prices (`null` = on request) | `READINGS` |
 
 Any value still containing `PLACEHOLDER` shows a "coming soon" message on the site instead of a broken link.
 
@@ -37,7 +38,8 @@ Text for About, testimonials and the refund policy is in the HTML files and mark
 3. Limits: minimum notice 7 days; booking frequency limit 5 per week.
 4. Booking questions: full name and "Your question" (required).
 5. Turn on email confirmations and reminders.
-6. Put the link in `SITE.calDefault`. If Ash wants exact durations per spread, create one event per duration and map them in `SITE.calEvents`.
+6. Create a second event for the free first reading, with required booking questions for email, mobile number and date of birth, and limit it to one booking per email. Put it in `SITE.calFree`.
+7. Put the link in `SITE.calDefault`. If Ash wants exact durations per spread, create one event per duration and map them in `SITE.calEvents`.
 
 ### Dodo Payments
 1. Confirm with Dodo that tarot/spiritual readings are allowed under their acceptable-use policy before going live.
