@@ -23,8 +23,9 @@
         <a class="btn btn-small btn-ghost" target="_blank" rel="noopener" href="https://wa.me/?text={{ ('My card of the day from EmpressAsh: ' ~ card.name ~ ' ' ~ s.SITE_URL ~ '/daily-card')|urlencode }}">WhatsApp</a>
         <a class="btn btn-small btn-ghost" target="_blank" rel="noopener" href="https://www.linkedin.com/sharing/share-offsite/?url={{ (s.SITE_URL ~ '/daily-card')|urlencode }}">LinkedIn</a>
         <button class="btn btn-small btn-ghost" type="button" data-share="copy">Copy link</button>
+        <button class="btn btn-small btn-ghost" type="button" data-card-image data-title="Card of the day · {{ card.date.strftime('%-d %B %Y') }}" data-numeral="{{ card.numeral }}" data-name="{{ card.name }}" data-meaning="{{ card.meaning }}">Save image for Instagram</button>
       </div>
-      <p class="fine">For Instagram, take a screenshot and tag Ash.</p>
+      <p class="fine">On a phone, "Save image" opens your share sheet so you can post it straight to your Instagram story. Tag Ash when you do.</p>
     </div>
   </div>
 </section>

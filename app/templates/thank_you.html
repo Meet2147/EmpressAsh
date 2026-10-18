@@ -22,6 +22,7 @@
       <p class="muted">The payment didn't go through, so you haven't been charged. You can try again any time.</p>
       <p><a class="btn" href="/readings">Back to readings</a></p>
     {% endif %}
+    {% if pay_status in ('paid', 'delivered') %}<p class="muted">After your reading, Ash would love to hear how it felt. <a href="/reviews#leave">Leave a review</a>.</p>{% endif %}
     <p class="fine">Order reference: {{ o.id }}</p>
   </div>
 </section>

@@ -10,7 +10,8 @@
     <div class="card"><p class="eyebrow">Members</p><p class="price big">{{ members|length }}</p></div>
     <div class="card"><p class="eyebrow">Free readings to send</p><p class="price big">{{ members|selectattr('free_status', 'equalto', 'requested')|list|length }}</p></div>
     <div class="card"><p class="eyebrow">Paid orders to deliver</p><p class="price big">{{ orders|selectattr('status', 'equalto', 'paid')|list|length }}</p></div>
-    <div class="card"><p class="eyebrow">Birthdays in {{ month }}</p><p class="price big">{{ birthdays|length }}</p></div>
+    <a class="card plain" href="#birthdays"><p class="eyebrow">Birthdays in {{ month }}</p><p class="price big">{{ birthdays|length }}</p></a>
+    <a class="card plain" href="#reviews"><p class="eyebrow">Reviews to check</p><p class="price big">{{ reviews|rejectattr('approved')|list|length }}</p></a>
   </div>
 
   <h2 id="orders">Orders</h2>
@@ -35,6 +36,29 @@
       <td>{{ m.referral_code }}</td><td>{{ m.referred_by or '' }}</td><td>{{ m.referral_credits }}</td><td class="q">{{ m.free_question or '' }}</td>
       <td><form method="post" action="/admin/members/{{ m.id }}/free-done"><button class="btn btn-small btn-ghost">{{ 'Sent ✓' if m.free_status == 'done' else 'Mark free reading sent' }}</button></form></td></tr>
     {% else %}<tr><td colspan="9" class="muted">No members yet.</td></tr>{% endfor %}
+  </table></div>
+
+  <h2 id="birthdays">Birthdays in {{ month }}</h2>
+  <p class="fine">Send a birthday reading gift. The buttons open WhatsApp or your email with a message ready to edit.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Day</th><th>Name</th><th>Contact</th><th></th></tr>
+    {% for m in birthdays %}
+    {% set msg = 'Happy birthday, ' ~ m.name.split(' ')[0] ~ '! As a little gift from EmpressAsh, your birthday reading is on me. Reply with a question you would like the cards to look at. With love, Ash' %}
+    <tr{% if m.birthday[8:10] == today_day %} class="today-row"{% endif %}><td>{{ m.birthday[8:10] }}{% if m.birthday[8:10] == today_day %} · today{% endif %}</td><td>{{ m.name }}</td><td><span class="fine">{{ m.email }}<br>{{ m.phone }}</span></td>
+      <td class="actions"><a class="btn btn-small" target="_blank" rel="noopener" href="https://wa.me/{{ m.phone|replace('+','')|replace(' ','')|replace('-','')|replace('(','')|replace(')','') }}?text={{ msg|urlencode }}">WhatsApp</a>
+        <a class="btn btn-small btn-ghost" href="mailto:{{ m.email }}?subject={{ 'A birthday reading for you'|urlencode }}&body={{ msg|urlencode }}">Email</a></td></tr>
+    {% else %}<tr><td colspan="4" class="muted">No birthdays this month yet.</td></tr>{% endfor %}
+  </table></div>
+
+  <h2 id="reviews">Reviews</h2>
+  <p class="fine">New reviews stay hidden until you publish them.</p>
+  <div class="table-wrap"><table>
+    <tr><th>Date</th><th>Name</th><th>Reading</th><th>Review</th><th></th></tr>
+    {% for r in reviews %}
+    <tr{% if not r.approved %} class="pending-row"{% endif %}><td>{{ r.created_at[:16] }}</td><td>{{ r.name }}</td><td>{{ r.reading or '' }}</td><td class="q">{{ r.body }}</td>
+      <td class="actions"><form method="post" action="/admin/reviews/{{ r.id }}/approve"><button class="btn btn-small{% if r.approved %} btn-ghost{% endif %}">{{ 'Unpublish' if r.approved else 'Publish' }}</button></form>
+        <form method="post" action="/admin/reviews/{{ r.id }}/delete" onsubmit="return confirm('Delete this review?')"><button class="btn btn-small btn-ghost">Delete</button></form></td></tr>
+    {% else %}<tr><td colspan="5" class="muted">No reviews yet.</td></tr>{% endfor %}
   </table></div>
 
   <h2 id="comments">Comments</h2>

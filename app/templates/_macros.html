@@ -7,22 +7,68 @@
 <div class="currency" role="group" aria-label="Currency"><button type="button" data-currency="inr">₹ INR</button><button type="button" data-currency="usd">$ USD</button></div>
 {%- endmacro %}
 
+{% macro glyph(name) -%}
+<svg class="glyph" viewBox="0 0 64 64" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+{%- if name == "triad" %}<rect x="8" y="20" width="14" height="24" rx="1.5"/><rect x="25" y="16" width="14" height="28" rx="1.5"/><rect x="42" y="20" width="14" height="24" rx="1.5"/><path d="M32 24l1.5 3 3 .4-2.2 2 .6 3-2.9-1.5-2.9 1.5.6-3-2.2-2 3-.4z"/>
+{%- elif name == "eye" %}<path d="M6 32c8-12 44-12 52 0-8 12-44 12-52 0z"/><circle cx="32" cy="32" r="8"/><circle cx="32" cy="32" r="2.5" fill="currentColor"/><path d="M32 10v6M18 14l3 5M46 14l-3 5"/>
+{%- elif name == "moon" %}<path d="M40 10a22 22 0 1 0 0 44 18 18 0 0 1 0-44z"/><circle cx="46" cy="22" r="1.4" fill="currentColor"/><circle cx="52" cy="34" r="1" fill="currentColor"/><circle cx="44" cy="44" r="1.2" fill="currentColor"/>
+{%- elif name == "sun" %}<circle cx="32" cy="32" r="11"/><path d="M32 6v8M32 50v8M6 32h8M50 32h8M13.6 13.6l5.6 5.6M44.8 44.8l5.6 5.6M13.6 50.4l5.6-5.6M44.8 19.2l5.6-5.6"/><circle cx="32" cy="32" r="5"/>
+{%- elif name == "heart" %}<path d="M32 52S10 39 10 24a11 11 0 0 1 22-3 11 11 0 0 1 22 3c0 15-22 28-22 28z"/><path d="M32 8v6M26 11l6 3 6-3"/>
+{%- elif name == "rings" %}<circle cx="25" cy="36" r="13"/><circle cx="39" cy="36" r="13"/><path d="M28 14l4-6 4 6-4 3z"/>
+{%- elif name == "star" %}<path d="M32 6l5 19 19 7-19 7-5 19-5-19-19-7 19-7z"/><path d="M14 14l8 8M50 14l-8 8M14 50l8-8M50 50l-8-8"/>
+{%- elif name == "leaf" %}<path d="M14 50C14 26 30 12 52 12c0 22-14 38-38 38z"/><path d="M14 50L40 24M24 40h10M30 34v-8"/>
+{%- elif name == "cross" %}<rect x="25" y="8" width="14" height="48" rx="1.5"/><rect x="12" y="25" width="40" height="14" rx="1.5"/><circle cx="32" cy="32" r="4"/>
+{%- elif name == "coin" %}<circle cx="32" cy="32" r="20"/><circle cx="32" cy="32" r="15"/><path d="M32 20l3.5 8.5 9 .7-7 5.8 2.2 8.8L32 39l-7.7 4.8 2.2-8.8-7-5.8 9-.7z"/>
+{%- elif name == "book" %}<path d="M32 18c-6-4-14-5-22-4v34c8-1 16 0 22 4 6-4 14-5 22-4V14c-8-1-16 0-22 4z"/><path d="M32 18v34"/><path d="M40 8l2 4 4 .5-3 2.5 1 4-4-2-4 2 1-4-3-2.5 4-.5z"/>
+{%- elif name == "key" %}<circle cx="22" cy="22" r="10"/><circle cx="22" cy="22" r="4"/><path d="M29 29l23 23M42 42l5-5M47 47l5-5"/>
+{%- elif name == "house" %}<path d="M10 30L32 10l22 20"/><path d="M16 26v26h32V26"/><path d="M27 52V38h10v14"/><circle cx="32" cy="24" r="3"/>
+{%- elif name == "crown" %}<path d="M10 46l-2-24 12 10 12-18 12 18 12-10-2 24z"/><path d="M10 52h44"/><circle cx="32" cy="34" r="3"/>
+{%- elif name == "compass" %}<circle cx="32" cy="32" r="22"/><path d="M32 14l5 18-5 18-5-18z"/><path d="M14 32h4M46 32h4M32 6v4M32 54v4"/>
+{%- elif name == "rune" %}<path d="M22 8v48M22 10l18 10-18 10 18 16"/><circle cx="46" cy="50" r="1.4" fill="currentColor"/>
+{%- else %}<path d="M32 10l6 16 16 6-16 6-6 16-6-16-16-6 16-6z"/>{% endif %}
+</svg>
+{%- endmacro %}
+
+{% macro lowest_price(r) -%}
+{%- set li = catalog.lowest(r, 'inr') -%}{%- set lu = catalog.lowest(r, 'usd') -%}
+{%- if li is none %}Price on request{% else %}From <span class="cur-inr">{{ catalog.fmt_price(li, 'inr') }}</span><span class="cur-usd">{{ catalog.fmt_price(lu, 'usd') }}</span>{% endif -%}
+{%- endmacro %}
+
+{# A reading as a tarot card: dealt in on scroll, tilts on hover, turns over to show formats and prices. #}
 {% macro reading_card(r) -%}
-<article class="reading reveal">
-  <p class="eyebrow">{{ r.tag }}</p>
-  <h3><a class="plain" href="/readings/{{ r.id }}">{{ r.name }}</a></h3>
-  <p class="muted">{{ r.desc }}</p>
-  <p class="duration">✦ {{ r.duration }}</p>
-  <ul class="formats">
-    {% for f in catalog.FORMATS %}
-    <li><span>{{ f.label }}</span><span class="price">{{ price(r, f.id) }}</span>
-      {% if f.live and not s.LIVE_READINGS_OPEN %}<span class="soon">Soon</span>
-      {% elif r.inr[loop.index0] is none %}<a class="btn btn-small btn-ghost" href="/contact">Ask</a>
-      {% else %}<a class="btn btn-small" href="/checkout/{{ r.id }}?format={{ f.id }}">Book</a>{% endif %}
-    </li>
-    {% endfor %}
-  </ul>
-</article>
+<div class="tcard" data-tcard>
+  <div class="tcard-tilt">
+    <div class="tcard-inner">
+      <article class="tcard-face tcard-front" aria-label="{{ r.name }}">
+        <span class="tcard-corner tl" aria-hidden="true">✦</span><span class="tcard-corner tr" aria-hidden="true">✦</span>
+        <span class="tcard-corner bl" aria-hidden="true">✦</span><span class="tcard-corner br" aria-hidden="true">✦</span>
+        <span class="tcard-num">{{ r.numeral }}</span>
+        <span class="tcard-art"><span class="tcard-rays" aria-hidden="true"></span>{{ glyph(r.glyph) }}</span>
+        <h3 class="tcard-title">{{ r.name }}</h3>
+        <p class="tcard-tag">{{ r.tag }}</p>
+        <p class="tcard-from">{{ lowest_price(r) }}</p>
+        <button class="tcard-turn" type="button" data-turn aria-label="Turn over {{ r.name }} to see formats and prices">Turn over ↻</button>
+        <span class="tcard-shine" aria-hidden="true"></span>
+      </article>
+      <div class="tcard-face tcard-back">
+        <h3 class="tcard-back-title"><a class="plain" href="/readings/{{ r.id }}">{{ r.name }}</a></h3>
+        <p class="tcard-desc">{{ r.desc }}</p>
+        <p class="duration">✦ {{ r.duration }}</p>
+        <ul class="tcard-formats">
+          {% for f in catalog.FORMATS %}
+          <li><span class="fmt-label">{{ f.label }}</span>
+            <span class="fmt-row"><span class="price">{{ price(r, f.id) }}</span>
+            {% if f.live and not s.LIVE_READINGS_OPEN %}<span class="soon">Soon</span>
+            {% elif r.inr[loop.index0] is none %}<a class="btn btn-small btn-ghost" href="/contact">Ask</a>
+            {% else %}<a class="btn btn-small" href="/checkout/{{ r.id }}?format={{ f.id }}">Book</a>{% endif %}</span>
+          </li>
+          {% endfor %}
+        </ul>
+        <button class="tcard-turn" type="button" data-turn aria-label="Turn {{ r.name }} back over">↺ Turn back</button>
+      </div>
+    </div>
+  </div>
+</div>
 {%- endmacro %}
 
 {% macro comments_block(comments, error, action) -%}

@@ -32,11 +32,11 @@
 <canvas class="motes" aria-hidden="true"></canvas>
 <div class="vignette" aria-hidden="true"></div>
 <header id="site-header">
-  <a class="brand" href="/" aria-label="EmpressAsh home"><span class="brand-moon" aria-hidden="true"></span>EmpressAsh</a>
+  <a class="brand" href="/" aria-label="EmpressAsh home"><img class="brand-logo" src="/static/images/logo.svg" alt="" width="34" height="34">EmpressAsh</a>
   <button class="nav-toggle" aria-expanded="false" aria-controls="site-nav">Menu</button>
   <nav id="site-nav">
     <ul>
-      {% for href, label, key in [("/", "Home", "home"), ("/about", "About", "about"), ("/readings", "Readings", "readings"), ("/daily-card", "Daily card", "daily"), ("/stories", "Stories", "stories"), ("/contact", "Contact", "contact")] %}
+      {% for href, label, key in [("/", "Home", "home"), ("/about", "About", "about"), ("/readings", "Readings", "readings"), ("/daily-card", "Daily card", "daily"), ("/practice", "Ask the cards", "practice"), ("/stories", "Stories", "stories"), ("/contact", "Contact", "contact")] %}
       <li><a href="{{ href }}"{% if nav_page == key %} aria-current="page"{% endif %}>{{ label }}</a></li>
       {% endfor %}
     </ul>
@@ -50,7 +50,7 @@
   <div class="footer-inner">
     <div><p class="brand">EmpressAsh</p><p class="muted">Tarot, oracle, runes &amp; energy guidance with Ash.</p></div>
     <div class="footer-links">
-      <a href="/readings">Readings</a><a href="/daily-card">Daily card</a><a href="/stories">Stories</a><a href="/join">Join</a><a href="/contact">Contact</a><a href="/policies">Policies</a>
+      <a href="/readings">Readings</a><a href="/daily-card">Daily card</a><a href="/practice">Ask the cards</a><a href="/stories">Stories</a><a href="/reviews">Reviews</a><a href="/join">Join</a><a href="/contact">Contact</a><a href="/policies">Policies</a>
       {% if s.SOCIAL.instagram %}<a href="{{ s.SOCIAL.instagram }}" target="_blank" rel="noopener">Instagram</a>{% endif %}
       {% if s.SOCIAL.youtube %}<a href="{{ s.SOCIAL.youtube }}" target="_blank" rel="noopener">YouTube</a>{% endif %}
       {% if s.SOCIAL.telegram %}<a href="{{ s.SOCIAL.telegram }}" target="_blank" rel="noopener">Telegram group</a>{% endif %}

@@ -19,7 +19,8 @@
       <div><p class="eyebrow">New here?</p><h3>Your first reading is free</h3></div>
       <a class="btn" href="/join">Claim your free reading</a>
     </div>
-    <div class="grid">{% for r in catalog.READINGS %}{{ reading_card(r) }}{% endfor %}</div>
+    <p class="muted">Tap any card to turn it over.</p>
+    <div class="deck-grid" data-deal>{% for r in catalog.READINGS %}{{ reading_card(r) }}{% endfor %}</div>
     <p class="fine" style="margin-top:32px">All readings are for spiritual reflection and personal guidance. Tarot interpretations are subjective and do not guarantee outcomes, and are not a substitute for medical, legal, mental health, property or financial advice. See <a href="/policies">policies</a>.</p>
   </div>
 </section>

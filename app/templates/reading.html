@@ -1,15 +1,20 @@
 {% extends "base.html" %}
-{% from "_macros.html" import reading_card, price, currency_switch with context %}
+{% from "_macros.html" import reading_card, price, currency_switch, glyph with context %}
 {% block title %}{{ r.name }} · EmpressAsh{% endblock %}
 {% block description %}{{ r.desc }}{% endblock %}
 {% block content %}
 <section>
   <div class="wrap split">
-    <div class="tarot-card big reveal" aria-hidden="true">
-      <span class="tarot-numeral">✦</span>
-      <span class="tarot-star">☾</span>
-      <span class="tarot-name">{{ r.name }}</span>
-    </div>
+    <div class="tcard tcard-hero reveal" aria-hidden="true"><div class="tcard-tilt"><div class="tcard-inner">
+      <div class="tcard-face tcard-front">
+        <span class="tcard-corner tl">✦</span><span class="tcard-corner tr">✦</span><span class="tcard-corner bl">✦</span><span class="tcard-corner br">✦</span>
+        <span class="tcard-num">{{ r.numeral }}</span>
+        <span class="tcard-art"><span class="tcard-rays"></span>{{ glyph(r.glyph) }}</span>
+        <span class="tcard-title">{{ r.name }}</span>
+        <span class="tcard-tag">{{ r.tag }}</span>
+        <span class="tcard-shine"></span>
+      </div>
+    </div></div></div>
     <div class="reveal">
       <p class="eyebrow"><a class="plain" href="/readings">Readings</a> · {{ r.tag }}</p>
       <h1 class="page-title">{{ r.name }}</h1>
@@ -33,7 +38,7 @@
   <div class="wrap">
     <p class="ornament" aria-hidden="true">✦</p>
     <h2 class="center">You may also like</h2>
-    <div class="grid" style="margin-top:24px">{% for o in others %}{{ reading_card(o) }}{% endfor %}</div>
+    <div class="deck-grid" data-deal style="margin-top:24px">{% for o in others %}{{ reading_card(o) }}{% endfor %}</div>
   </div>
 </section>
 {% endblock %}

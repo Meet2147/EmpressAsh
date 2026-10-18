@@ -127,13 +127,92 @@
     if (store("ea-flipped") === new Date().toDateString()) reveal();
   }
 
+  /* ---------- Share image (for Instagram stories and posts) ---------- */
+  // Draws the drawn card(s) on a 1080x1350 image, then opens the share sheet (phones) or downloads it.
+  function wrap(ctx, text, maxW) {
+    var words = text.split(" "), lines = [], line = "";
+    words.forEach(function (w) {
+      var t = line ? line + " " + w : w;
+      if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; } else line = t;
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath(); ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+  }
+  function cardImage(opts) {
+    var W = 1080, H = 1350, c = document.createElement("canvas"); c.width = W; c.height = H;
+    var ctx = c.getContext("2d"), fell = '"IM Fell English", Georgia, serif', gold = "#F8D794";
+    var ready = document.fonts && document.fonts.load ? Promise.all([document.fonts.load("60px \"IM Fell English\""), document.fonts.load("italic 40px \"IM Fell English\"")]).catch(function () {}) : Promise.resolve();
+    return ready.then(function () {
+      var g = ctx.createLinearGradient(0, 0, 0, H);
+      g.addColorStop(0, "#2b2338"); g.addColorStop(0.55, "#1f2e29"); g.addColorStop(1, "#111A19");
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      var glow = ctx.createRadialGradient(W / 2, H * 0.45, 0, W / 2, H * 0.45, 600);
+      glow.addColorStop(0, "rgba(248,215,148,0.18)"); glow.addColorStop(1, "rgba(248,215,148,0)");
+      ctx.fillStyle = glow; ctx.fillRect(0, 0, W, H);
+      for (var i = 0; i < 90; i++) { ctx.fillStyle = "rgba(255,240,200," + (Math.random() * 0.6).toFixed(2) + ")"; ctx.beginPath(); ctx.arc(Math.random() * W, Math.random() * H, Math.random() * 1.8, 0, 6.283); ctx.fill(); }
+      ctx.strokeStyle = "rgba(248,215,148,0.5)"; ctx.lineWidth = 2; roundRect(ctx, 30, 30, W - 60, H - 60, 24); ctx.stroke();
+      ctx.textAlign = "center"; ctx.fillStyle = gold;
+      ctx.font = "56px " + fell; ctx.fillText("EmpressAsh", W / 2, 130);
+      ctx.fillStyle = "#F3EBD6"; ctx.font = "italic 40px " + fell;
+      wrap(ctx, opts.title, W - 200).slice(0, 2).forEach(function (l, k) { ctx.fillText(l, W / 2, 200 + k * 50); });
+      var cards = opts.cards, n = cards.length, cw = n === 1 ? 420 : 290, ch = cw * 1.55, gap = 36;
+      var x0 = (W - (n * cw + (n - 1) * gap)) / 2, y0 = n === 1 ? 290 : 450;
+      cards.forEach(function (cd, k) {
+        var x = x0 + k * (cw + gap), y = y0;
+        var cg = ctx.createLinearGradient(x, y, x + cw, y + ch); cg.addColorStop(0, "#372C41"); cg.addColorStop(1, "#284139");
+        ctx.save(); ctx.shadowColor = "rgba(248,215,148,0.35)"; ctx.shadowBlur = 40;
+        roundRect(ctx, x, y, cw, ch, 18); ctx.fillStyle = cg; ctx.fill(); ctx.restore();
+        ctx.strokeStyle = gold; ctx.lineWidth = 2; roundRect(ctx, x, y, cw, ch, 18); ctx.stroke();
+        ctx.strokeStyle = "rgba(248,215,148,0.45)"; ctx.lineWidth = 1; roundRect(ctx, x + 12, y + 12, cw - 24, ch - 24, 12); ctx.stroke();
+        ctx.fillStyle = gold; ctx.font = (n === 1 ? 44 : 34) + "px " + fell; ctx.fillText(cd.numeral, x + cw / 2, y + 70);
+        ctx.font = (n === 1 ? 150 : 100) + "px " + fell; ctx.save(); ctx.shadowColor = "rgba(248,215,148,0.8)"; ctx.shadowBlur = 30;
+        ctx.fillText("✦", x + cw / 2, y + ch * 0.58); ctx.restore();
+        ctx.fillStyle = "#F3EBD6"; ctx.font = (n === 1 ? 46 : 34) + "px " + fell;
+        wrap(ctx, cd.name, cw - 50).forEach(function (l, j, arr) { ctx.fillText(l, x + cw / 2, y + ch - 40 - (arr.length - 1 - j) * 40); });
+        if (cd.label) { ctx.fillStyle = "#93A052"; ctx.font = "30px " + fell; ctx.fillText(cd.label.toUpperCase(), x + cw / 2, y + ch + 50); }
+      });
+      if (opts.meaning) {
+        ctx.fillStyle = "#F3EBD6"; ctx.font = "italic 38px " + fell;
+        wrap(ctx, opts.meaning, W - 200).slice(0, 4).forEach(function (l, k) { ctx.fillText(l, W / 2, y0 + ch + 90 + k * 50); });
+      }
+      ctx.fillStyle = gold; ctx.font = "34px " + fell;
+      ctx.fillText((location.host || "empressash").replace(/^www\./, ""), W / 2, H - 80);
+      return new Promise(function (res) { c.toBlob(res, "image/png"); });
+    });
+  }
+  function saveCardImage(opts, btn) {
+    var label = btn.textContent; btn.textContent = "Preparing…";
+    cardImage(opts).then(function (blob) {
+      btn.textContent = label;
+      if (!blob) return;
+      var file = new File([blob], opts.filename || "empressash-card.png", { type: "image/png" });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        navigator.share({ files: [file], title: "EmpressAsh" }).catch(function () {});
+      } else {
+        var a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = file.name;
+        document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      }
+    }, function () { btn.textContent = label; });
+  }
+  window.EA = { cardImage: cardImage, saveCardImage: saveCardImage };
+  $all("[data-card-image]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      saveCardImage({ title: b.getAttribute("data-title"), meaning: b.getAttribute("data-meaning"),
+        cards: [{ numeral: b.getAttribute("data-numeral"), name: b.getAttribute("data-name") }], filename: "empressash-card-of-the-day.png" }, b);
+    });
+  });
+
   /* ---------- Share buttons ---------- */
   $all(".share-row").forEach(function (row) {
-    var url = row.getAttribute("data-share-url"), text = row.getAttribute("data-share-text");
+    var url = row.getAttribute("data-share-url");
     var native = $("[data-share=native]", row), copy = $("[data-share=copy]", row);
     if (native) {
       if (!navigator.share) native.remove();
-      else native.addEventListener("click", function () { navigator.share({ title: "EmpressAsh", text: text, url: url }).catch(function () {}); });
+      else native.addEventListener("click", function () { navigator.share({ title: "EmpressAsh", text: row.getAttribute("data-share-text"), url: url }).catch(function () {}); });
     }
     if (copy) copy.addEventListener("click", function () {
       var done = function () { copy.textContent = "Copied ✓"; setTimeout(function () { copy.textContent = "Copy link"; }, 1800); };
@@ -168,6 +247,79 @@
       document.addEventListener("mouseleave", function () { light.style.opacity = "0"; });
     }
   }
+
+  /* ---------- Reading cards: deal in, tilt, turn over ---------- */
+  var tcards = $all("[data-tcard]");  // .tcard-hero has no data-tcard, so it only gets the hover shine
+  tcards.forEach(function (card) {
+    var front = $(".tcard-front", card), back = $(".tcard-back", card);
+    var setTurned = function (on) {
+      card.classList.toggle("turned", on);
+      if ("inert" in back) { back.inert = !on; front.inert = on; }
+      var focusBtn = $("[data-turn]", on ? back : front);
+      if (focusBtn) setTimeout(function () { focusBtn.focus({ preventScroll: true }); }, on ? 350 : 350);
+    };
+    if ("inert" in back) back.inert = true;
+    card.addEventListener("click", function (e) {
+      if (e.target.closest("a")) return;
+      if (e.target.closest("[data-turn]")) { setTurned(!card.classList.contains("turned")); return; }
+      if (!card.classList.contains("turned") && e.target.closest(".tcard-front")) setTurned(true);
+    });
+    card.addEventListener("keydown", function (e) { if (e.key === "Escape" && card.classList.contains("turned")) setTurned(false); });
+    if (calm || !window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
+    card.addEventListener("pointermove", function (e) {
+      var r = card.getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+      card.classList.add("hovering");
+      card.style.setProperty("--ry", ((x - 0.5) * 16).toFixed(2) + "deg");
+      card.style.setProperty("--rx", ((0.5 - y) * 12).toFixed(2) + "deg");
+      card.style.setProperty("--mx", (x * 100).toFixed(1) + "%");
+      card.style.setProperty("--my", (y * 100).toFixed(1) + "%");
+    });
+    card.addEventListener("pointerleave", function () {
+      card.classList.remove("hovering");
+      card.style.setProperty("--rx", "0deg"); card.style.setProperty("--ry", "0deg");
+    });
+  });
+
+  // Deal: cards fly in from a single point, as if dealt from a deck, when they scroll into view.
+  if (!calm && "IntersectionObserver" in window) {
+    $all("[data-deal]").forEach(function (group) {
+      var cards = $all("[data-tcard]", group);
+      cards.forEach(function (c) { c.classList.add("undealt"); });
+      var dealer = new IntersectionObserver(function (entries) {
+        var batch = entries.filter(function (e) { return e.isIntersecting; }).map(function (e) { return e.target; });
+        if (!batch.length) return;
+        batch.sort(function (a, b) { return cards.indexOf(a) - cards.indexOf(b); });
+        var rects = batch.map(function (c) { return c.getBoundingClientRect(); });
+        var left = Math.min.apply(null, rects.map(function (r) { return r.left; }));
+        var right = Math.max.apply(null, rects.map(function (r) { return r.right; }));
+        var top = Math.min.apply(null, rects.map(function (r) { return r.top; }));
+        var cx = (left + right) / 2;
+        batch.forEach(function (c, i) {
+          var r = rects[i];
+          c.style.setProperty("--dx", (cx - (r.left + r.width / 2)).toFixed(0) + "px");
+          c.style.setProperty("--dy", (top - r.top - 60).toFixed(0) + "px");
+          c.style.setProperty("--rot", ((Math.random() * 24) - 12).toFixed(1) + "deg");
+          c.style.setProperty("--deal-delay", (i * 0.09).toFixed(2) + "s");
+          dealer.unobserve(c);
+        });
+        requestAnimationFrame(function () { requestAnimationFrame(function () {
+          batch.forEach(function (c) {
+            c.classList.remove("undealt");
+            setTimeout(function () { c.style.setProperty("--deal-delay", "0s"); }, 1400);
+          });
+        }); });
+      }, { threshold: 0.15 });
+      cards.forEach(function (c) { dealer.observe(c); });
+    });
+  }
+
+  // Arrow buttons for the homepage rail.
+  $all("[data-rail]").forEach(function (b) {
+    b.addEventListener("click", function () {
+      var row = $(".card-row", b.parentNode);
+      row.scrollBy({ left: Number(b.getAttribute("data-rail")) * row.clientWidth * 0.8, behavior: calm ? "auto" : "smooth" });
+    });
+  });
 
   /* ---------- Reveal on scroll ---------- */
   if ("IntersectionObserver" in window) {

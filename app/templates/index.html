@@ -66,8 +66,34 @@
       <div><p class="eyebrow">Readings</p><h2>Choose your spread</h2></div>
       {{ currency_switch() }}
     </div>
-    <div class="grid">{% for r in featured %}{{ reading_card(r) }}{% endfor %}</div>
-    <p class="center" style="margin-top:32px"><a class="btn btn-ghost" href="/readings">See all readings</a></p>
+    <p class="muted">Tap a card to turn it over and see its formats and prices.</p>
+    <div class="card-rail">
+      <button class="rail-btn prev" type="button" data-rail="-1" aria-label="Previous cards">‹</button>
+      <div class="card-row" data-deal tabindex="0" aria-label="Readings">{% for r in featured %}{{ reading_card(r) }}{% endfor %}</div>
+      <button class="rail-btn next" type="button" data-rail="1" aria-label="More cards">›</button>
+    </div>
+    <p class="center" style="margin-top:24px"><a class="btn btn-ghost" href="/readings">See all readings</a></p>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <p class="eyebrow center">What people bring to the table</p>
+    <h2 class="center">Ask about what's on your mind</h2>
+    <div class="topics">
+      {% for label, rid, blurb in catalog.TOPICS %}
+      <a class="topic reveal plain" href="/readings/{{ rid }}"><span class="topic-name">{{ label }}</span><span class="fine">{{ blurb }}</span><span class="topic-go">{{ catalog.BY_ID[rid].name }} →</span></a>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="card offer reveal">
+      <div><p class="eyebrow">Practise with the cards</p><h3>Ask the cards a question</h3><p class="muted" style="margin:6px 0 0">Shuffle the deck, pick three cards, and try reading them yourself before you see what each one means.</p></div>
+      <a class="btn" href="/practice">Shuffle the deck</a>
+    </div>
   </div>
 </section>
 
@@ -105,11 +131,13 @@
     <p class="eyebrow center">Kind words</p>
     <h2 class="center">From those who've sat at Ash's table</h2>
     <div class="grid" style="margin-top:28px">
-      <!-- PLACEHOLDER testimonials: replace with real ones Ash has permission to publish -->
-      <figure class="card reveal" style="margin:0"><blockquote class="quote" style="margin:0 0 16px">“Testimonial from a client goes here. Ash will send real ones with permission to publish.”</blockquote><figcaption class="quote-by">— Client name</figcaption></figure>
-      <figure class="card reveal" style="margin:0"><blockquote class="quote" style="margin:0 0 16px">“Second testimonial placeholder. A sentence or two about how the reading felt.”</blockquote><figcaption class="quote-by">— Client name</figcaption></figure>
-      <figure class="card reveal" style="margin:0"><blockquote class="quote" style="margin:0 0 16px">“Third testimonial placeholder. First names or initials are fine.”</blockquote><figcaption class="quote-by">— Client name</figcaption></figure>
+      {% for rv in reviews %}
+      <figure class="card reveal" style="margin:0"><blockquote class="quote" style="margin:0 0 16px">“{{ rv.body }}”</blockquote><figcaption class="quote-by">— {{ rv.name }}{% if rv.reading %} · {{ rv.reading }}{% endif %}</figcaption></figure>
+      {% else %}
+      <figure class="card reveal" style="margin:0"><blockquote class="quote" style="margin:0 0 16px">“Kind words from clients will appear here once Ash approves them.”</blockquote><figcaption class="quote-by">— The first review could be yours</figcaption></figure>
+      {% endfor %}
     </div>
+    <p class="center" style="margin-top:24px"><a class="btn btn-ghost" href="/reviews">Read or leave a review</a></p>
   </div>
 </section>
 

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Kind words · EmpressAsh{% endblock %}
+{% block description %}What clients say after a reading with Ash, and a place to share your own.{% endblock %}
+{% block content %}
+<section>
+  <div class="wrap">
+    <p class="eyebrow center">Kind words</p>
+    <h1 class="page-title center">From those who've sat at Ash's table</h1>
+    <div class="grid" style="margin-top:28px">
+      {% for rv in reviews %}
+      <figure class="card reveal" style="margin:0"><blockquote class="quote" style="margin:0 0 16px">“{{ rv.body }}”</blockquote><figcaption class="quote-by">— {{ rv.name }}{% if rv.reading %} · {{ rv.reading }}{% endif %}</figcaption></figure>
+      {% else %}
+      <p class="muted center" style="grid-column:1/-1">No reviews yet. If you've had a reading with Ash, yours could be the first.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+<section style="padding-top:0">
+  <div class="wrap prose">
+    <h2 id="leave">Leave a review</h2>
+    {% if sent %}
+    <p class="note" role="status">Thank you. Ash reads every review and will publish yours once she has seen it.</p>
+    {% else %}
+    <form method="post" action="/reviews#leave" class="card form">
+      {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}
+      <label for="rv-name">Your name (first name or initials are fine)</label>
+      <input id="rv-name" name="name" maxlength="60" required autocomplete="given-name">
+      <label for="rv-reading">Which reading did you have?</label>
+      <select id="rv-reading" name="reading">
+        <option value="">I'd rather not say</option>
+        {% for r in catalog.READINGS %}<option value="{{ r.id }}">{{ r.name }}</option>{% endfor %}
+      </select>
+      <label for="rv-body">How did the reading feel?</label>
+      <textarea id="rv-body" name="body" maxlength="1200" rows="5" required></textarea>
+      <label class="check"><input type="checkbox" name="consent" value="1" required> Ash may publish these words on this site with my name.</label>
+      <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+      <p><button class="btn" type="submit">Send review</button></p>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

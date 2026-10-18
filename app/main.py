@@ -129,8 +129,8 @@ def load_stories():
 
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
-    return render(request, "index.html", nav_page="home", featured=catalog.READINGS[:3],
-                  card=tarot.card_of_the_day(), stories=load_stories()[:3])
+    return render(request, "index.html", nav_page="home", featured=catalog.READINGS[:8],
+                  card=tarot.card_of_the_day(), stories=load_stories()[:3], reviews=approved_reviews(3))
 
 
 @app.get("/about", response_class=HTMLResponse)
@@ -158,7 +158,7 @@ def reading_page(request: Request, slug: str):
     r = catalog.BY_ID.get(slug)
     if not r:
         return render(request, "404.html", status=404)
-    others = [x for x in catalog.READINGS if x["id"] != slug][:3]
+    others = [x for x in catalog.READINGS if x["id"] != slug][:4]
     return render(request, "reading.html", nav_page="readings", r=r, others=others)
 
 
@@ -337,6 +337,56 @@ def daily_comment(request: Request, name: str = Form(""), body: str = Form(""), 
     return RedirectResponse("/daily-card#comments", status_code=303)
 
 
+@app.get("/practice", response_class=HTMLResponse)
+def practice(request: Request):
+    return render(request, "practice.html", nav_page="practice", deck=tarot.DECK,
+                  comments=comments_for("practice"), error=None)
+
+
+@app.post("/practice", response_class=HTMLResponse)
+def practice_comment(request: Request, name: str = Form(""), body: str = Form(""), website: str = Form("")):
+    err = add_comment(request, "practice", name, body, website)
+    if err:
+        return render(request, "practice.html", nav_page="practice", deck=tarot.DECK, status=400,
+                      comments=comments_for("practice"), error=err)
+    return RedirectResponse("/practice#comments", status_code=303)
+
+
+# ---------- reviews (shown once Ash approves them) ----------
+
+def approved_reviews(limit: int = 100):
+    with db.conn() as c:
+        return c.execute("SELECT name, reading, body, created_at FROM reviews WHERE approved=1 ORDER BY id DESC LIMIT ?",
+                         (limit,)).fetchall()
+
+
+@app.get("/reviews", response_class=HTMLResponse)
+def reviews(request: Request, sent: int = 0):
+    return render(request, "reviews.html", nav_page="reviews", reviews=approved_reviews(), error=None, sent=bool(sent))
+
+
+@app.post("/reviews", response_class=HTMLResponse)
+def review_submit(request: Request, name: str = Form(""), reading: str = Form(""), body: str = Form(""),
+                  consent: str = Form(""), website: str = Form("")):
+    if website:
+        return RedirectResponse("/reviews?sent=1", status_code=303)
+    name, body = clean(name, 60), clean(body, 1200)
+    reading_name = catalog.BY_ID[reading]["name"] if reading in catalog.BY_ID else ""
+    err = None
+    if not name or not body:
+        err = "Please add your name and a few words about your reading."
+    elif not consent:
+        err = "Please tick the box so Ash may publish your words."
+    elif too_many(request, "review", 3, 3600):
+        err = "Thank you, we already have your review. Please try again later."
+    if err:
+        return render(request, "reviews.html", nav_page="reviews", reviews=approved_reviews(), error=err, sent=False,
+                      status=400)
+    with db.conn() as c:
+        c.execute("INSERT INTO reviews(name, reading, body) VALUES (?,?,?)", (name, reading_name, body))
+    return RedirectResponse("/reviews?sent=1", status_code=303)
+
+
 @app.get("/stories", response_class=HTMLResponse)
 def stories(request: Request):
     return render(request, "stories.html", nav_page="stories", stories=load_stories())
@@ -382,11 +432,12 @@ def admin(request: Request):
         members = c.execute("SELECT * FROM members ORDER BY id DESC LIMIT 500").fetchall()
         orders = c.execute("SELECT * FROM orders ORDER BY created_at DESC LIMIT 500").fetchall()
         comments = c.execute("SELECT * FROM comments ORDER BY id DESC LIMIT 200").fetchall()
+        reviews = c.execute("SELECT * FROM reviews ORDER BY approved, id DESC LIMIT 200").fetchall()
         today = datetime.date.today()
-        bdays = [m for m in c.execute("SELECT * FROM members").fetchall()
-                 if m["birthday"][5:7] == f"{today.month:02d}"]
+        bdays = sorted([m for m in c.execute("SELECT * FROM members").fetchall()
+                        if m["birthday"][5:7] == f"{today.month:02d}"], key=lambda m: m["birthday"][8:10])
     return render(request, "admin.html", members=members, orders=orders, comments=comments, birthdays=bdays,
-                  month=today.strftime("%B"))
+                  reviews=reviews, month=today.strftime("%B"), today_day=f"{today.day:02d}")
 
 
 @app.post("/admin/login", response_class=HTMLResponse)
@@ -415,6 +466,24 @@ def admin_hide_comment(request: Request, cid: int):
     with db.conn() as c:
         c.execute("UPDATE comments SET hidden = 1 - hidden WHERE id=?", (cid,))
     return RedirectResponse("/admin#comments", status_code=303)
+
+
+@app.post("/admin/reviews/{rid}/approve")
+def admin_review_approve(request: Request, rid: int):
+    if not is_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    with db.conn() as c:
+        c.execute("UPDATE reviews SET approved = 1 - approved WHERE id=?", (rid,))
+    return RedirectResponse("/admin#reviews", status_code=303)
+
+
+@app.post("/admin/reviews/{rid}/delete")
+def admin_review_delete(request: Request, rid: int):
+    if not is_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    with db.conn() as c:
+        c.execute("DELETE FROM reviews WHERE id=?", (rid,))
+    return RedirectResponse("/admin#reviews", status_code=303)
 
 
 @app.post("/admin/members/{mid}/free-done")
