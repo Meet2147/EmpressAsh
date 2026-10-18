@@ -13,6 +13,7 @@
         <p class="price big">{{ price(r, f.id) }}</p>
         <div style="margin-top:16px">{{ currency_switch() }}</div>
         <p class="fine" style="margin-top:16px">You'll pay the full amount on Dodo Payments' secure page. UPI, cards and more are accepted.</p>
+        <p class="fine">After paying you'll arrive in your own private <strong>reading room</strong>, where {% if f.live %}you pick a time for your session and {% endif %}your reading appears and you can message Ash.</p>
       </aside>
       <form class="card form" method="post" action="/checkout/{{ r.id }}">
         {% if error %}<p class="form-error" role="alert">{{ error }}</p>{% endif %}

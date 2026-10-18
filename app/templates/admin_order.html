@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Order {{ o.id }} · Admin{% endblock %}
+{% block content %}
+<section class="admin admin-order"><div class="wrap prose">
+  <p><a class="plain" href="/admin#orders">← All orders</a></p>
+  <h1 class="page-title">{{ o.name }}</h1>
+  <p class="muted">{{ r.name if r else o.reading }} · {{ f.label if f else o.format }} · {{ catalog.fmt_price(o.amount, o.currency) }} · <span class="pill {{ o.status }}">{{ o.status }}</span></p>
+  <p class="fine">{{ o.email }} · {{ o.phone }} · born {{ o.birthday }} · ordered {{ o.created_at[:16] }} · ref {{ o.id }}</p>
+  <div class="card"><p class="eyebrow">Their question</p><p class="room-question">{{ o.question }}</p></div>
+
+  <div class="card" style="margin-top:18px">
+    <p class="eyebrow">Their reading room</p>
+    <p class="fine">Everything you write below appears on this private page. The client lands there after paying.</p>
+    <div class="share-row" data-share-url="{{ s.SITE_URL }}/room/{{ o.token }}" data-share-text="Your EmpressAsh reading room">
+      <a class="btn btn-small btn-ghost" href="/room/{{ o.token }}" target="_blank" rel="noopener">Open their room</a>
+      <button class="btn btn-small btn-ghost" type="button" data-share="copy">Copy link</button>
+    </div>
+  </div>
+
+  <h2 id="reading">Write the reading</h2>
+  {% if saved %}<p class="note" role="status">Saved. The client sees it in their room now.</p>{% endif %}
+  <form class="card form" method="post" action="/admin/orders/{{ o.id }}/reading">
+    <label for="progress">Progress the client sees</label>
+    <select id="progress" name="progress">
+      {% for key, label in [('received', 'Received'), ('reading', 'I am reading' if not (f and f.live) else 'Session time picked'), ('ready', 'Ready: reading delivered')] %}
+      <option value="{{ key }}"{% if (o.progress or 'received') == key %} selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+    <label for="reading_text">The reading</label>
+    <textarea id="reading_text" name="reading_text" placeholder="Write freely. Leave a blank line between paragraphs. **bold** and *italic* work.">{{ o.reading_text or '' }}</textarea>
+    <label for="media_url">Voice note or video link (optional)</label>
+    <input id="media_url" name="media_url" type="url" maxlength="500" placeholder="https://drive.google.com/… or a YouTube unlisted link" value="{{ o.media_url or '' }}">
+    <p class="fine">Choosing "Ready" marks the order delivered.</p>
+    <p><button class="btn" type="submit">Save</button></p>
+  </form>
+
+  <h2 id="messages">Messages</h2>
+  <div class="thread">
+    {% for m in messages %}
+    <div class="bubble {{ 'client' if m.sender == 'ash' else 'ash' }}"><p class="bubble-by">{{ 'You' if m.sender == 'ash' else o.name.split(' ')[0] }} <span class="fine">· {{ m.created_at[:16] }}</span></p><p>{{ m.body }}</p></div>
+    {% else %}<p class="muted">No messages yet.</p>{% endfor %}
+  </div>
+  <form class="card form" method="post" action="/admin/orders/{{ o.id }}/message">
+    <label for="reply">Reply</label>
+    <textarea id="reply" name="body" rows="3" maxlength="2000" required></textarea>
+    <p><button class="btn" type="submit">Send to their room</button></p>
+  </form>
+</div></section>
+{% endblock %}

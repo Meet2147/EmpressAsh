@@ -22,8 +22,8 @@
     <tr><td>{{ o.created_at[:16] }}</td><td>{{ o.id }}</td><td>{{ catalog.BY_ID[o.reading].name if o.reading in catalog.BY_ID else o.reading }}<br><span class="fine">{{ o.format }}</span></td>
       <td>{{ catalog.fmt_price(o.amount, o.currency) }}</td>
       <td>{{ o.name }}<br><span class="fine">{{ o.email }}<br>{{ o.phone }} · {{ o.birthday }}</span></td>
-      <td class="q">{{ o.question }}</td><td><span class="pill {{ o.status }}">{{ o.status }}</span></td>
-      <td>{% if o.status in ('paid', 'delivered') %}<form method="post" action="/admin/orders/{{ o.id }}/done"><button class="btn btn-small btn-ghost">{{ 'Undo' if o.status == 'delivered' else 'Mark delivered' }}</button></form>{% endif %}</td></tr>
+      <td class="q">{{ o.question }}</td><td><span class="pill {{ o.status }}">{{ o.status }}</span>{% if o.waiting %}<br><span class="pill waiting">{{ o.waiting }} new message{{ 's' if o.waiting > 1 }}</span>{% endif %}</td>
+      <td>{% if o.status in ('paid', 'delivered') %}<a class="btn btn-small" href="/admin/orders/{{ o.id }}">{{ 'Write reading' if o.status == 'paid' else 'Open' }}</a>{% endif %}</td></tr>
     {% else %}<tr><td colspan="8" class="muted">No orders yet.</td></tr>{% endfor %}
   </table></div>
 
