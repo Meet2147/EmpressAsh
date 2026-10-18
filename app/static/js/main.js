@@ -382,4 +382,9 @@
   } else {
     $all(".reveal").forEach(function (n) { n.classList.add("in"); });
   }
+  // Forms that ask "Are you sure?" first (used in the admin). Kept here, not inline, for the security policy.
+  document.addEventListener("submit", function (e) {
+    var f = e.target.closest ? e.target.closest("[data-confirm]") : null;
+    if (f && !window.confirm(f.getAttribute("data-confirm"))) e.preventDefault();
+  });
 })();

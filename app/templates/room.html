@@ -10,6 +10,15 @@
       <h1 class="page-title center">Almost there, {{ first }}</h1>
       <p class="muted center">We're waiting for your payment to be confirmed. This usually takes a few seconds.</p>
       <p class="center"><a class="btn btn-ghost" href="/room/{{ o.token }}">Refresh</a></p>
+    {% elif o.status == 'review' %}
+      <h1 class="page-title center">We're checking your payment, {{ first }}</h1>
+      <p class="muted center">Your payment arrived but needs a quick check by Ash before your reading starts. You don't need to do anything; she will be in touch.</p>
+    {% elif o.status == 'refunded' %}
+      <h1 class="page-title center">This order was refunded</h1>
+      <p class="muted center">The payment for this reading has been returned to you. Please contact Ash with any questions.</p>
+    {% elif o.status == 'disputed' %}
+      <h1 class="page-title center">This payment is under review</h1>
+      <p class="muted center">There is a dispute open on this payment with your bank. Please contact Ash.</p>
     {% elif not paid %}
       <h1 class="page-title center">Payment not completed</h1>
       <p class="muted center">The payment didn't go through, so you haven't been charged. You can try again any time.</p>
@@ -40,6 +49,15 @@
 
       {% if f and f.live %}
       <h2 id="session">Pick your time</h2>
+      <div class="card conduct-note">
+        <p class="eyebrow">Before your call</p>
+        <ul class="muted">
+          <li>Be respectful. No hate speech, threats, sexual remarks or harassment.</li>
+          <li>Be fully dressed and in a private, appropriate place. No nudity or sexual content of any kind.</li>
+          <li>No recording or screenshots, by either side.</li>
+          <li>Ash will end the call straight away if these rules are broken, without a refund, and may block future bookings. See the <a href="/policies#conduct">conduct rules</a>.</li>
+        </ul>
+      </div>
       {% if cal_path %}
         <p class="muted">Ash reads Thursday to Sunday, 6–8pm IST. Choose a slot and you'll get a calendar invite with the video link.</p>
         <div id="cal-inline" class="cal-inline" data-cal-path="{{ cal_path }}" data-cal-name="{{ o.name }}" data-cal-email="{{ o.email }}" data-cal-notes="Order {{ o.id }}"></div>
@@ -81,12 +99,28 @@
         <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
         <p><button class="btn" type="submit">Send</button></p>
       </form>
+
+      <h2 id="report">Report a problem</h2>
+      {% if reported %}
+        <p class="note" role="status">Thank you. Your report has reached Ash privately and will be looked at.</p>
+      {% else %}
+      <details class="card">
+        <summary>Something on a call or in a message made you uncomfortable?</summary>
+        <form class="form" method="post" action="/room/{{ o.token }}/report">
+          <p class="fine">Tell us what happened. Only Ash sees this.</p>
+          <label for="report-body">What happened</label>
+          <textarea id="report-body" name="body" rows="3" maxlength="2000" required></textarea>
+          <input class="hp" name="website" tabindex="-1" autocomplete="off" aria-hidden="true">
+          <p><button class="btn btn-ghost" type="submit">Send report</button></p>
+        </form>
+      </details>
+      {% endif %}
     {% endif %}
     <p class="fine center">Order reference: {{ o.id }}</p>
   </div>
 </section>
 {% if paid and f and f.live and cal_path %}
-<script>
+<script nonce="{{ nonce }}">
   (function (C, A, L) { var p = function (a, ar) { a.q.push(ar); }; var d = C.document; C.Cal = C.Cal || function () { var cal = C.Cal; var ar = arguments; if (!cal.loaded) { cal.ns = {}; cal.q = cal.q || []; d.head.appendChild(d.createElement("script")).src = A; cal.loaded = true; } if (ar[0] === L) { var api = function () { p(api, arguments); }; var namespace = ar[1]; api.q = api.q || []; if (typeof namespace === "string") { cal.ns[namespace] = cal.ns[namespace] || api; p(cal.ns[namespace], ar); p(cal, ["initNamespace", namespace]); } else p(cal, ar); return; } p(cal, ar); }; })(window, "https://app.cal.com/embed/embed.js", "init");
   (function () {
     var el = document.getElementById("cal-inline");

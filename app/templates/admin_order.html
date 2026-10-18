@@ -6,6 +6,13 @@
   <h1 class="page-title">{{ o.name }}</h1>
   <p class="muted">{{ r.name if r else o.reading }} · {{ f.label if f else o.format }} · {{ catalog.fmt_price(o.amount, o.currency) }} · <span class="pill {{ o.status }}">{{ o.status }}</span></p>
   <p class="fine">{{ o.email }} · {{ o.phone }} · born {{ o.birthday }} · ordered {{ o.created_at[:16] }} · ref {{ o.id }}</p>
+  {% if o.status == 'review' %}
+  <div class="card form-error">
+    <p><strong>Payment held for checking:</strong> {{ o.pay_note }}.</p>
+    <p class="fine">Dodo payment {{ o.dodo_payment or '?' }}. Look it up in the Dodo dashboard. If the right amount was paid for this reading, confirm it; otherwise refund it in Dodo.</p>
+    <form method="post" action="/admin/orders/{{ o.id }}/confirm-payment" data-confirm="Mark this order as paid?"><button class="btn btn-small">The payment is right: mark paid</button></form>
+  </div>
+  {% endif %}
   <div class="card"><p class="eyebrow">Their question</p><p class="room-question">{{ o.question }}</p></div>
 
   <div class="card" style="margin-top:18px">
@@ -37,7 +44,7 @@
   <h2 id="messages">Messages</h2>
   <div class="thread">
     {% for m in messages %}
-    <div class="bubble {{ 'client' if m.sender == 'ash' else 'ash' }}"><p class="bubble-by">{{ 'You' if m.sender == 'ash' else o.name.split(' ')[0] }} <span class="fine">· {{ m.created_at[:16] }}</span></p><p>{{ m.body }}</p></div>
+    <div class="bubble {{ 'client' if m.sender == 'ash' else 'ash' }}"><p class="bubble-by">{{ 'You' if m.sender == 'ash' else o.name.split(' ')[0] }} <span class="fine">· {{ m.created_at[:16] }}</span></p><p>{{ m.body }}</p>{% if m.flagged %}<p class="fine bad-note">⚠ Contains words from the abuse list</p>{% endif %}</div>
     {% else %}<p class="muted">No messages yet.</p>{% endfor %}
   </div>
   <form class="card form" method="post" action="/admin/orders/{{ o.id }}/message">
@@ -45,5 +52,18 @@
     <textarea id="reply" name="body" rows="3" maxlength="2000" required></textarea>
     <p><button class="btn" type="submit">Send to their room</button></p>
   </form>
+
+  <h2 id="safety">Safety</h2>
+  {% for rp in reports %}<div class="card"><p class="eyebrow">Report from the client · {{ rp.created_at[:16] }}</p><p>{{ rp.body }}</p></div>{% endfor %}
+  {% if blocked %}
+    <p class="note">This person is blocked. They can't book, join or message. Unblock them from the dashboard.</p>
+  {% else %}
+  <form class="card form" method="post" action="/admin/orders/{{ o.id }}/block" data-confirm="Block {{ o.name }} from booking, joining and messaging?">
+    <p class="fine">If this person broke the conduct rules (hate speech, sexual remarks, nudity, harassment), block them. Their email and mobile can't be used to book, join or message again.</p>
+    <label for="reason">Reason (only you see this)</label>
+    <input id="reason" name="reason" maxlength="300">
+    <p><button class="btn btn-ghost" type="submit">Block this person</button></p>
+  </form>
+  {% endif %}
 </div></section>
 {% endblock %}

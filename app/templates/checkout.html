@@ -30,6 +30,7 @@
         <label for="question">Your question</label>
         <textarea id="question" name="question" rows="5" required maxlength="1500" placeholder="What would you like guidance on?">{{ form.question or '' }}</textarea>
         <label class="check"><input type="checkbox" name="agree" value="yes" required> I'm 18 or older and have read the <a href="/policies" target="_blank">policies</a>.</label>
+        {% if f.live %}<label class="check"><input type="checkbox" name="conduct" value="yes" required> I agree to the <a href="/policies#conduct" target="_blank">conduct rules</a> for live calls: no hate speech, no sexual remarks, no nudity, no recording. Ash may end the call without a refund if they're broken.</label>{% endif %}
         <p><button class="btn" type="submit">Continue to secure payment</button></p>
       </form>
     </div>

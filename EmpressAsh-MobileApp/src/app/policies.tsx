@@ -26,6 +26,16 @@ const SECTIONS: [string, string[]][] = [
     ],
   ],
   [
+    'Conduct on live calls',
+    [
+      'No hate speech: nothing that attacks anyone for their religion, caste, race, nationality, gender, sexuality, disability or age.',
+      'No sexual remarks or requests, and no requests for photos, personal contact or meetings.',
+      'No nudity or sexual content. Be fully dressed, in a private and appropriate place.',
+      'No harassment, threats or abuse, and no recording or screenshots by either side.',
+      'Ash will end the call immediately if these rules are broken. A session ended for a breach is not refunded, and Ash may block future bookings. Report any problem from your reading room on the website.',
+    ],
+  ],
+  [
     'Confidentiality & recordings',
     ['All sessions are confidential. Sessions are not recorded, by Ash or by the client.'],
   ],

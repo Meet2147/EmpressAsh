@@ -3,6 +3,7 @@ import httpx
 from standardwebhooks.webhooks import Webhook, WebhookVerificationError
 
 from . import settings
+from .security import is_dodo_url
 
 
 class PaymentError(Exception):
@@ -167,11 +168,17 @@ def create_checkout(*, order_id: str, reading: str, fmt: str, product_name: str,
     if not data.get("checkout_url"):
         _record("Dodo did not return a checkout link")
         raise PaymentError("Dodo did not return a checkout link")
+    if not is_dodo_url(data["checkout_url"]):
+        # Never send a client to pay anywhere except Dodo's own secure page.
+        _record("Dodo returned a payment link outside dodopayments.com; refused it")
+        raise PaymentError(f"Unexpected checkout link host: {data['checkout_url'][:80]}")
     return data
 
 
 def session_status(session_id: str) -> str | None:
     """Payment status for a checkout session, e.g. 'succeeded', or None if unknown."""
+    if not session_id or not all(ch.isalnum() or ch in "_-" for ch in session_id):
+        return None
     try:
         r = httpx.get(f"{settings.DODO_BASE_URL}/checkouts/{session_id}", timeout=15,
                       headers={"Authorization": f"Bearer {settings.DODO_API_KEY}"})
@@ -192,6 +199,30 @@ def verify_webhook(body: bytes, headers) -> dict:
         "webhook-signature": headers.get("webhook-signature", ""),
         "webhook-timestamp": headers.get("webhook-timestamp", ""),
     })
+
+
+def paid_enough(data: dict, order) -> tuple[bool, str]:
+    """Checks a payment against the order it claims to pay for.
+
+    The order ID travels in the payment's metadata. Someone could try paying for a cheap reading
+    through a Dodo payment link while putting an expensive order's ID in that metadata, so the
+    amount and currency Dodo actually took must cover the order. Paying more (tax added) is fine.
+    """
+    session = data.get("checkout_session_id")
+    if session and order["dodo_session"]:
+        # Paid through the checkout this site created for this order, at the price the server set.
+        if session == order["dodo_session"]:
+            return True, ""
+        return False, "paid through a different checkout than this order's"
+    cur = (data.get("currency") or "").lower()
+    total = data.get("total_amount")
+    if cur and cur != order["currency"]:
+        return False, f"paid in {cur.upper()}, order is in {order['currency'].upper()}"
+    if isinstance(total, int) and total < order["amount"] * 100:
+        return False, f"paid {total / 100:.2f}, order costs {order['amount']}"
+    if not cur or not isinstance(total, int):
+        return False, "payment had no amount or currency"
+    return True, ""
 
 
 __all__ = ["create_checkout", "session_status", "verify_webhook", "PaymentError", "WebhookVerificationError"]

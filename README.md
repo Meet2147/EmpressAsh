@@ -16,6 +16,14 @@ Website for EmpressAsh: tarot, oracle and rune readings with Ash. A small Python
 - **Admin (`/admin`):** password login; orders, members, birthdays this month (with ready-to-send WhatsApp and email birthday messages), reviews to publish, comments (hide/show), mark readings delivered, CSV export of members and orders.
 - Wand cursor, 18+ check on first visit, WhatsApp button, dark 1800s theme in Ash's palette.
 
+## Security and safety
+
+- **Payments:** prices are set on the server; the API key is only sent to `*.dodopayments.com` over https; clients are only ever redirected to a Dodo checkout link. Webhooks must carry Dodo's signature. A payment only marks an order paid if it came through that order's own checkout, or covers its amount and currency; anything else is held as **review** for Ash to check in the admin. Refunds and disputes update the order.
+- **Browser protection:** strict Content Security Policy with per-request nonces, no framing (clickjacking), HSTS, no caching of rooms, checkout or admin. Markdown in readings and stories can't run scripts.
+- **Admin:** login is rate limited per visitor and site-wide; changing `ADMIN_PASSWORD` signs out every browser. The admin warns if the password is shorter than 12 characters.
+- **Conduct:** live bookings require agreeing to the conduct rules (no hate speech, sexual remarks, nudity, harassment or recording; see `/policies#conduct`). Clients can **Report a problem** from their room; Ash can **Block this person** from an order page (stops booking, joining and messaging by email and mobile). Comments with hateful or sexual words are hidden until Ash shows them; such room messages are flagged.
+- Tests: `pip install pytest && python -m pytest tests`.
+
 ## Run locally
 
 ```bash
