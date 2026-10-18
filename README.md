@@ -9,13 +9,13 @@ Static website for EmpressAsh (tarot, oracle and energy readings with Ash). Plai
 ## Run locally
 
 ```bash
-cd public && python3 -m http.server 8000
+python3 -m http.server 8000
 # open http://localhost:8000
 ```
 
 ## Where to change things
 
-Almost everything lives in [`public/js/config.js`](public/js/config.js):
+Almost everything lives in [`js/config.js`](js/config.js):
 
 | What | Key |
 |---|---|
@@ -27,7 +27,7 @@ Almost everything lives in [`public/js/config.js`](public/js/config.js):
 
 Any value still containing `PLACEHOLDER` shows a "coming soon" message on the site instead of a broken link.
 
-Text for About, testimonials and the refund policy is in the HTML files and marked with `PLACEHOLDER` comments. Colours are the tokens at the top of [`public/css/styles.css`](public/css/styles.css).
+Text for About, testimonials and the refund policy is in the HTML files and marked with `PLACEHOLDER` comments. Colours are the tokens at the top of [`css/styles.css`](css/styles.css).
 
 ## Setting up the services
 
@@ -52,8 +52,8 @@ Put originals in `originals/` (git-ignored) and run:
 ```bash
 scripts/compress-images.sh originals/*.jpg
 ```
-This writes WebP files under 200 KB to `public/images/`. Keep video on YouTube to stay within Render's free 5 GB/month bandwidth.
+This writes WebP files under 200 KB to `images/`. Keep video on YouTube to stay within Render's free 5 GB/month bandwidth.
 
 ## Deploy on Render (free)
-1. In Render: **New → Blueprint**, pick this repo. `render.yaml` creates a free static site publishing `public/`.
+1. In Render: **New → Blueprint**, pick this repo. `render.yaml` creates a free static site publishing the repo root.
 2. Add the custom domain under the site's **Settings → Custom Domains** and point DNS as shown.

@@ -4,7 +4,7 @@ services:
     name: empressash
     runtime: static
     buildCommand: ""
-    staticPublishPath: ./public
+    staticPublishPath: .
     pullRequestPreviewsEnabled: true
     headers:
       - path: /css/*
