@@ -6,3 +6,4 @@ python-multipart==0.0.20
 markdown==3.8
 itsdangerous==2.2.0
 standardwebhooks==1.0.0
+geoip2fast==1.2.2

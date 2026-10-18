@@ -4,7 +4,7 @@ Website for EmpressAsh: tarot, oracle and rune readings with Ash. A small Python
 
 ## What it does
 
-- **Readings:** 16 spreads, each with its own page, in three formats (video, voice, written) with INR and USD prices. Currency is picked from the visitor's time zone and can be switched.
+- **Readings:** 16 spreads, each with its own page, in three formats (video, voice, written) with INR and USD prices. The currency follows the visitor's location (INR in India, USD elsewhere), looked up from their IP address with an offline country database; the time zone is only a fallback. Checkout uses the same rule on the server, so visitors outside India can't pay the INR price.
 - **Checkout:** the client fills in name, email, mobile, date of birth and question; the server creates a Dodo Payments checkout for the exact price and sends them to pay. Dodo's webhook marks the order paid. Live video/voice readings show "Coming soon" until `LIVE_READINGS_OPEN=true`; after paying for a live reading the client is sent to `CAL_LINK` to pick a time.
 - **Join the circle (`/join`):** collects name, email, mobile and birthday for a free first reading and birthday gifts. Each member gets a referral code and link (`/r/CODE`); when a friend joins with it, the member earns a free-reading credit.
 - **Readings as tarot cards:** each spread is a card that is dealt in as it scrolls into view, tilts and glows under the cursor, and turns over to show its formats and prices.

@@ -17,18 +17,9 @@
     toggle.setAttribute("aria-expanded", String(open));
   });
 
-  /* ---------- Currency (INR in India, USD elsewhere; set in <head>) ---------- */
-  function currentCurrency() { return document.documentElement.classList.contains("inr") ? "inr" : "usd"; }
-  function applyCurrency(c) {
-    document.documentElement.classList.remove("inr", "usd");
-    document.documentElement.classList.add(c);
-    $all("[data-currency]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-currency") === c)); });
-    $all("[data-currency-input]").forEach(function (i) { i.value = c; });
-  }
-  $all("[data-currency]").forEach(function (b) {
-    b.addEventListener("click", function () { var c = b.getAttribute("data-currency"); store("ea-currency", c); applyCurrency(c); });
-  });
-  applyCurrency(currentCurrency());
+  /* ---------- Currency (picked from location in <head>; checkout form follows it) ---------- */
+  var cur = document.documentElement.classList.contains("inr") ? "inr" : "usd";
+  $all("[data-currency-input]").forEach(function (i) { i.value = cur; });
 
   /* ---------- Drifting embers, snow and bokeh (like the reference reel) ---------- */
   var canvas = $(".motes");

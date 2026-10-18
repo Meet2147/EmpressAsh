@@ -4,7 +4,7 @@
 {%- endmacro %}
 
 {% macro currency_switch() -%}
-<div class="currency" role="group" aria-label="Currency"><button type="button" data-currency="inr">₹ INR</button><button type="button" data-currency="usd">$ USD</button></div>
+<p class="currency-note"><span class="cur-inr">Prices in ₹ INR for India</span><span class="cur-usd">Prices in US$ outside India</span></p>
 {%- endmacro %}
 
 {% macro glyph(name) -%}

@@ -532,3 +532,4 @@ h1, h2 { letter-spacing: 0.015em; text-shadow: 0 0 40px rgba(248, 215, 148, 0.12
 .tcard-hero { width: min(330px, 80vw); margin: 0 auto; cursor: default; }
 .tcard-hero .tcard-front { cursor: default; justify-content: center; }
 .tcard-hero .tcard-title { font-family: var(--display); font-size: 1.6rem; }
+.currency-note { margin: 0; font-size: 0.85rem; letter-spacing: 0.06em; color: var(--muted); border: 1px solid var(--card-border); border-radius: 999px; padding: 6px 14px; display: inline-block; }
