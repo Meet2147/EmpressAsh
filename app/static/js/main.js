@@ -30,21 +30,68 @@
   });
   applyCurrency(currentCurrency());
 
-  /* ---------- Starfield ---------- */
-  var sky = $(".sky");
-  if (sky && !calm) {
-    var frag = document.createDocumentFragment();
-    for (var i = 0; i < 90; i++) {
-      var st = document.createElement("span");
-      st.className = "star";
-      st.style.left = Math.random() * 100 + "%";
-      st.style.top = Math.random() * 100 + "%";
-      st.style.animationDelay = (Math.random() * 6).toFixed(2) + "s";
-      var size = Math.random() < 0.85 ? 1 + Math.random() * 1.5 : 2.5 + Math.random();
-      st.style.width = st.style.height = size.toFixed(1) + "px";
-      frag.appendChild(st);
+  /* ---------- Drifting embers, snow and bokeh (like the reference reel) ---------- */
+  var canvas = $(".motes");
+  if (canvas && canvas.getContext) {
+    var ctx = canvas.getContext("2d"), dpr = Math.min(window.devicePixelRatio || 1, 2), W = 0, H = 0, parts = [];
+    var resize = function () {
+      W = window.innerWidth; H = window.innerHeight;
+      canvas.width = W * dpr; canvas.height = H * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    };
+    var make = function (kind, anywhere) {
+      var p = { kind: kind, x: Math.random() * W, phase: Math.random() * 6.28 };
+      if (kind === "ember") { p.r = 0.8 + Math.random() * 1.8; p.vy = -(0.15 + Math.random() * 0.35); p.vx = 0.05 + Math.random() * 0.15; p.y = anywhere ? Math.random() * H : H + 10; }
+      else if (kind === "snow") { p.r = 0.6 + Math.random() * 1.6; p.vy = 0.2 + Math.random() * 0.45; p.vx = 0.15 + Math.random() * 0.3; p.y = anywhere ? Math.random() * H : -10; }
+      else { p.r = 14 + Math.random() * 26; p.vy = -(0.03 + Math.random() * 0.06); p.vx = 0.02; p.y = anywhere ? Math.random() * H : H + p.r; }
+      return p;
+    };
+    resize();
+    var n = window.innerWidth < 700 ? 32 : 64;
+    for (var i = 0; i < n; i++) parts.push(make(i % 3 === 0 ? "snow" : "ember", true));
+    for (var j = 0; j < (window.innerWidth < 700 ? 4 : 8); j++) parts.push(make("bokeh", true));
+    var draw = function (t) {
+      ctx.clearRect(0, 0, W, H);
+      for (var k = 0; k < parts.length; k++) {
+        var p = parts[k];
+        var flicker = 0.55 + 0.45 * Math.sin(t / 600 + p.phase * 3);
+        var g;
+        if (p.kind === "ember") {
+          g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4);
+          g.addColorStop(0, "rgba(255, 226, 160," + (0.9 * flicker).toFixed(3) + ")");
+          g.addColorStop(0.35, "rgba(248, 190, 110," + (0.35 * flicker).toFixed(3) + ")");
+          g.addColorStop(1, "rgba(248, 190, 110, 0)");
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r * 4, 0, 6.283); ctx.fill();
+        } else if (p.kind === "snow") {
+          ctx.fillStyle = "rgba(236, 240, 234," + (0.35 + 0.3 * flicker).toFixed(3) + ")";
+          ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
+        } else {
+          g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+          g.addColorStop(0, "rgba(255, 236, 196, 0.07)");
+          g.addColorStop(0.7, "rgba(255, 236, 196, 0.04)");
+          g.addColorStop(1, "rgba(255, 236, 196, 0)");
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 6.283); ctx.fill();
+        }
+      }
+    };
+    var step = function (t) {
+      for (var k = 0; k < parts.length; k++) {
+        var p = parts[k];
+        p.x += p.vx + Math.sin(t / 2000 + p.phase) * 0.25;
+        p.y += p.vy;
+        if (p.y < -40 || p.y > H + 40 || p.x > W + 40) parts[k] = make(p.kind, false);
+        if (parts[k].x > W + 40) parts[k].x = -20;
+      }
+      draw(t);
+      if (!document.hidden) raf = requestAnimationFrame(step);
+    };
+    var raf;
+    window.addEventListener("resize", resize);
+    if (calm) draw(0);
+    else {
+      raf = requestAnimationFrame(step);
+      document.addEventListener("visibilitychange", function () { cancelAnimationFrame(raf); if (!document.hidden) raf = requestAnimationFrame(step); });
     }
-    sky.appendChild(frag);
   }
 
   /* ---------- 18+ gate (not on admin) ---------- */
