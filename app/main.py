@@ -258,6 +258,105 @@ def checkout_submit(request: Request, slug: str, format: str = Form(...), curren
     return RedirectResponse(session["checkout_url"], status_code=303)
 
 
+# ---------- reading bundles ----------
+
+@app.get("/bundles", response_class=HTMLResponse)
+def bundles(request: Request):
+    return render(request, "bundles.html", nav_page="readings", error=None, form={"bundle": "bundle-3"})
+
+
+@app.post("/bundles", response_class=HTMLResponse)
+def bundles_submit(request: Request, bundle: str = Form(""), currency: str = Form("usd"), name: str = Form(""),
+                   email: str = Form(""), phone: str = Form(""), birthday: str = Form(""), agree: str = Form("")):
+    b = catalog.BUNDLE_BY_ID.get(bundle)
+    currency = geo.currency(request) or ("inr" if currency == "inr" else "usd")
+    form = dict(bundle=bundle, name=clean(name, 80), email=clean(email, 120), phone=clean(phone, 25),
+                birthday=clean(birthday, 10), currency=currency)
+
+    def fail(msg):
+        return render(request, "bundles.html", nav_page="readings", error=msg, form=form, status=400)
+
+    if not b:
+        return fail("Please choose a bundle.")
+    if not form["name"] or not EMAIL_RE.match(form["email"]) or not PHONE_RE.match(form["phone"]):
+        return fail("Please enter your full name, a valid email and a mobile number.")
+    if not valid_birthday(form["birthday"]):
+        return fail("Please enter your date of birth. Readings are for adults 18 and over.")
+    if agree != "yes":
+        return fail("Please confirm you've read the policies.")
+    with db.conn() as c:
+        if db.is_blocked(c, form["email"], form["phone"]):
+            return fail("We can't take a booking for these details. Please contact Ash if you think this is a mistake.")
+    amount = b[currency]
+    if not dodo.can_sell(b["id"], "credits", currency, amount):
+        return fail("Bundles open very soon. Please check back shortly.")
+    if too_many(request, "checkout", 10, 600, site_limit=200):
+        return fail("Too many attempts. Please wait a few minutes and try again.")
+
+    order_id, token = db.new_order_id(), db.new_token()
+    with db.conn() as c:
+        c.execute("""INSERT INTO orders(id, token, reading, format, currency, amount, name, email, phone, birthday)
+                     VALUES (?,?,?,?,?,?,?,?,?,?)""",
+                  (order_id, token, b["id"], "credits", currency, amount, form["name"], form["email"], form["phone"],
+                   form["birthday"]))
+    try:
+        session = dodo.create_checkout(order_id=order_id, reading=b["id"], fmt="credits", product_name=b["name"],
+                                       amount_minor=amount * 100, currency=currency,
+                                       name=form["name"], email=form["email"], phone=form["phone"],
+                                       return_path=f"/room/{token}")
+    except dodo.PaymentError as e:
+        log.error("Bundle checkout failed for %s: %s", order_id, e)
+        with db.conn() as c:
+            c.execute("UPDATE orders SET status='failed' WHERE id=?", (order_id,))
+        return fail("We couldn't start the payment just now. Please try again, or message Ash.")
+    with db.conn() as c:
+        c.execute("UPDATE orders SET dodo_session=? WHERE id=?", (session.get("session_id"), order_id))
+    return RedirectResponse(session["checkout_url"], status_code=303)
+
+
+def render_bundle_room(request: Request, o, error=None, status=200, question=""):
+    o = refresh_payment(o)
+    with db.conn() as c:
+        left = db.credits_left(c, o["email"])
+        asked = c.execute("""SELECT token, question, status, progress, created_at FROM orders
+                             WHERE paid_with IS NOT NULL AND lower(email)=lower(?) ORDER BY created_at DESC""",
+                          (o["email"],)).fetchall()
+    return render(request, "bundle_room.html", o=o, b=catalog.BUNDLE_BY_ID[o["reading"]], left=max(left, 0),
+                  asked=asked, error=error, question=question, status=status)
+
+
+@app.post("/room/{token}/ask", response_class=HTMLResponse)
+def bundle_ask(request: Request, token: str, question: str = Form(""), website: str = Form("")):
+    """Spends one bundle credit on a new written reading, which gets its own reading room."""
+    o = order_by_token(token)
+    if not o or o["reading"] not in catalog.BUNDLE_BY_ID:
+        return render(request, "404.html", status=404)
+    q = clean(question, 1500)
+    if website:
+        return RedirectResponse(f"/room/{token}", status_code=303)
+    if o["status"] not in ("paid", "delivered"):
+        return render_bundle_room(request, o, error="Your bundle isn't paid yet.", status=400, question=q)
+    if not q:
+        return render_bundle_room(request, o, error="Please write the question you'd like Ash to read on.", status=400)
+    with db.conn() as c:
+        if db.is_blocked(c, o["email"], o["phone"]):
+            return render_bundle_room(request, o, error="This bundle can't be used. Please contact Ash.", status=403)
+    if too_many(request, "ask", 10, 600):
+        return render_bundle_room(request, o, error="Too many attempts. Please wait a few minutes.", status=429, question=q)
+    new_id, new_token = db.new_order_id(), db.new_token()
+    with db.conn() as c:
+        # One statement, so two quick submits can't spend the same credit twice.
+        cur = c.execute(f"""INSERT INTO orders(id, token, reading, format, currency, amount, name, email, phone, birthday,
+                                               question, status, paid_at, paid_with)
+                            SELECT ?,?,?,?,?,0,?,?,?,?,?,'paid',datetime('now'),?
+                            WHERE ({db.CREDITS_LEFT_SQL}) > 0""",
+                        (new_id, new_token, catalog.BUNDLE_READING, catalog.BUNDLE_FORMAT, o["currency"], o["name"],
+                         o["email"], o["phone"], o["birthday"], q, o["id"], o["email"], o["email"]))
+        if cur.rowcount != 1:
+            return render_bundle_room(request, o, error="You've used all the readings in your bundle.", status=400)
+    return RedirectResponse(f"/room/{new_token}", status_code=303)
+
+
 def refresh_payment(o):
     """The webhook usually marks orders paid first; this is a fallback check with Dodo."""
     if o["status"] == "pending" and o["dodo_session"]:
@@ -310,7 +409,10 @@ def room(request: Request, token: str):
     o = order_by_token(token)
     if not o:
         return render(request, "404.html", status=404)
-    resp = render_room(request, o, reported=request.query_params.get("reported") == "1")
+    if o["reading"] in catalog.BUNDLE_BY_ID:
+        resp = render_bundle_room(request, o)
+    else:
+        resp = render_room(request, o, reported=request.query_params.get("reported") == "1")
     resp.headers["Referrer-Policy"] = "no-referrer"
     resp.headers["X-Robots-Tag"] = "noindex"
     return resp

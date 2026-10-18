@@ -599,3 +599,25 @@ h1, h2 { letter-spacing: 0.015em; text-shadow: 0 0 40px rgba(248, 215, 148, 0.12
 @keyframes amb-pulse { 50% { box-shadow: 0 0 22px rgba(248, 215, 148, 0.45), 0 8px 26px rgba(0,0,0,0.35); } }
 @media (max-width: 560px) { .ambience { padding: 0; width: 44px; justify-content: center; } .ambience .amb-label { display: none; } }
 @media (prefers-reduced-motion: reduce) { .ambience .amb-on i, .ambience.waiting { animation: none; } .ambience .amb-on i { height: 70%; } }
+
+/* Reading bundles */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.bundle-form { max-width: 760px; margin: 26px auto 0; }
+.bundle-grid { border: 0; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
+.bundle { position: relative; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 4px; padding: 26px 12px 20px; cursor: pointer;
+  border: 1px solid rgba(248, 215, 148, 0.25); border-radius: 18px; background: rgba(23, 38, 33, 0.65); transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s; }
+.bundle input { position: absolute; opacity: 0; pointer-events: none; }
+.bundle:hover { border-color: rgba(248, 215, 148, 0.55); }
+.bundle:has(input:checked) { border-color: var(--gold); box-shadow: 0 0 30px rgba(248, 215, 148, 0.25), inset 0 0 24px rgba(248, 215, 148, 0.08); transform: translateY(-3px); }
+.bundle:has(input:focus-visible) { outline: 2px solid var(--gold); outline-offset: 3px; }
+.bundle-flag { position: absolute; top: -1px; right: -1px; font-size: 0.66rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 5px 10px; border-radius: 0 18px 0 12px; background: var(--gold); color: #1b1f1c; }
+.bundle-save { font-size: 0.78rem; padding: 3px 10px; border-radius: 999px; background: rgba(150, 190, 120, 0.18); color: #b9d99a; }
+.bundle-save.ghost { background: transparent; color: var(--muted); }
+.bundle-n { font-family: "IM Fell English", serif; font-size: 3rem; line-height: 1; color: var(--gold); margin-top: 6px; }
+.bundle-unit { font-size: 0.75rem; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); }
+.bundle-price { font-size: 1.35rem; margin-top: 8px; }
+.credits-left .bundle-n { font-size: 4rem; }
+.asked-list { list-style: none; padding: 0; display: grid; gap: 10px; }
+.asked-list li { padding: 14px 18px; }
+@media (max-width: 700px) { .bundle-grid { grid-template-columns: repeat(2, 1fr); } }
+.bundle.popular .bundle-save { margin-top: 8px; }

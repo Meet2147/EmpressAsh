@@ -100,3 +100,29 @@ def fmt_price(amount, currency: str) -> str:
 
 def format_by_id(fid: str):
     return next((f for f in FORMATS if f["id"] == fid), None)
+
+
+# Reading bundles: credits bought together for less. Each credit is one written 3 Card Spread,
+# asked whenever the client likes from their bundle's private page.
+BUNDLE_READING = "three-card"
+BUNDLE_FORMAT = "written"
+BUNDLES = [
+    {"id": "bundle-1", "n": 1, "inr": 499, "usd": 10},
+    {"id": "bundle-3", "n": 3, "inr": 1199, "usd": 24, "popular": True},
+    {"id": "bundle-5", "n": 5, "inr": 1799, "usd": 36},
+    {"id": "bundle-10", "n": 10, "inr": 3299, "usd": 66},
+]
+for _b in BUNDLES:
+    _b["name"] = f"{_b['n']} reading" + ("s" if _b["n"] > 1 else "") + " bundle"
+    _b["desc"] = f"{_b['n']} written 3 Card Spread reading" + ("s" if _b["n"] > 1 else "") + " with Ash, asked whenever you like."
+BUNDLE_BY_ID = {b["id"]: b for b in BUNDLES}
+
+
+def bundle_each(b: dict, currency: str) -> float:
+    return b[currency] / b["n"]
+
+
+def bundle_save(b: dict, currency: str) -> int:
+    """Percent saved against buying the same number of single readings."""
+    single = price(BY_ID[BUNDLE_READING], BUNDLE_FORMAT, currency)
+    return round(100 * (1 - b[currency] / (single * b["n"])))
