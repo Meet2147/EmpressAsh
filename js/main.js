@@ -225,7 +225,7 @@
       layout: "month_view",
       config: { theme: "dark", notes: r.name + " · " + f.label },
     });
-    window.Cal("ui", { theme: "dark", cssVarsPerTheme: { dark: { "cal-brand": "#d9c3ff" } }, hideEventTypeDetails: false });
+    window.Cal("ui", { theme: "dark", cssVarsPerTheme: { dark: { "cal-brand": "#F8D794" } }, hideEventTypeDetails: false });
   }
   renderBooking();
 
