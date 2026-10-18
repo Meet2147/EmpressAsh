@@ -14,6 +14,20 @@
     <a class="card plain" href="#reviews"><p class="eyebrow">Reviews to check</p><p class="price big">{{ reviews|rejectattr('approved')|list|length }}</p></a>
   </div>
 
+  <h2 id="payments">Payments setup</h2>
+  <div class="card">
+    <p class="fine">Mode: <strong>{{ s.DODO_MODE }}</strong>{% if s.DODO_MODE != 'live_mode' %} (test payments only, no real money){% endif %}</p>
+    <ul class="checklist">
+      {% for row in pay_setup %}<li class="{{ 'ok' if row.ok else 'bad' }}">{{ '✓' if row.ok else '✗' }} {{ row.name }}{% if not row.ok %} <span class="fine">{{ 'should start with https://' if row.name == 'SITE_URL' else 'not set in Render' }}</span>{% endif %}</li>{% endfor %}
+    </ul>
+    {% if pay_checks %}
+    <p class="eyebrow" style="margin-top:14px">Dodo says</p>
+    <ul class="checklist">{% for row in pay_checks %}<li class="{{ 'ok' if row.ok else 'bad' }}">{{ '✓' if row.ok else '✗' }} {{ row.name }}: <span class="fine">{{ row.detail }}</span></li>{% endfor %}</ul>
+    {% endif %}
+    {% if pay_error.message %}<p class="form-error">Last checkout error ({{ pay_error.when }}): {{ pay_error.message }}</p>{% endif %}
+    <form method="post" action="/admin/payments/check"><button class="btn btn-small btn-ghost">Check with Dodo</button></form>
+  </div>
+
   <h2 id="orders">Orders</h2>
   <p><a class="btn btn-small btn-ghost" href="/admin/export/orders.csv">Download CSV</a></p>
   <div class="table-wrap"><table>

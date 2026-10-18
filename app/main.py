@@ -164,12 +164,14 @@ def reading_page(request: Request, slug: str):
 
 
 @app.get("/checkout/{slug}", response_class=HTMLResponse)
-def checkout_form(request: Request, slug: str, format: str = "written", currency: str = ""):
+def checkout_form(request: Request, slug: str, format: str = "written", currency: str = "", question: str = ""):
     r = catalog.BY_ID.get(slug)
     f = catalog.format_by_id(format)
     if not r or not f:
         return render(request, "404.html", status=404)
-    return render(request, "checkout.html", nav_page="readings", r=r, f=f, error=None, form={})
+    # "Have Ash read it for you" on Ask the cards passes the question and the cards drawn.
+    return render(request, "checkout.html", nav_page="readings", r=r, f=f, error=None,
+                  form={"question": clean(question, 1500)})
 
 
 @app.post("/checkout/{slug}", response_class=HTMLResponse)
@@ -495,6 +497,10 @@ def is_admin(request: Request) -> bool:
 def admin(request: Request):
     if not is_admin(request):
         return render(request, "admin_login.html", error=None)
+    return render(request, "admin.html", **admin_context())
+
+
+def admin_context(pay_checks=None) -> dict:
     with db.conn() as c:
         members = c.execute("SELECT * FROM members ORDER BY id DESC LIMIT 500").fetchall()
         orders = c.execute("""SELECT o.*, (SELECT COUNT(*) FROM messages m WHERE m.order_id=o.id AND m.sender='client'
@@ -505,8 +511,28 @@ def admin(request: Request):
         today = datetime.date.today()
         bdays = sorted([m for m in c.execute("SELECT * FROM members").fetchall()
                         if m["birthday"][5:7] == f"{today.month:02d}"], key=lambda m: m["birthday"][8:10])
-    return render(request, "admin.html", members=members, orders=orders, comments=comments, birthdays=bdays,
-                  reviews=reviews, month=today.strftime("%B"), today_day=f"{today.day:02d}")
+    return dict(members=members, orders=orders, comments=comments, birthdays=bdays, reviews=reviews,
+                month=today.strftime("%B"), today_day=f"{today.day:02d}",
+                pay_setup=payment_setup(), pay_checks=pay_checks, pay_error=dodo.last_error)
+
+
+def payment_setup() -> list[dict]:
+    """Which payment settings are filled in on Render (never their values)."""
+    return [
+        {"name": "DODO_PAYMENTS_API_KEY", "ok": bool(settings.DODO_API_KEY)},
+        {"name": "DODO_PRODUCT_INR", "ok": bool(settings.DODO_PRODUCT_INR)},
+        {"name": "DODO_PRODUCT_USD", "ok": bool(settings.DODO_PRODUCT_USD)},
+        {"name": "DODO_PAYMENTS_WEBHOOK_KEY", "ok": bool(settings.DODO_WEBHOOK_SECRET)},
+        {"name": "SITE_URL", "ok": settings.SITE_URL.startswith("https://")},
+    ]
+
+
+@app.post("/admin/payments/check", response_class=HTMLResponse)
+def admin_payments_check(request: Request):
+    if not is_admin(request):
+        return RedirectResponse("/admin", status_code=303)
+    checks = dodo.check_setup() if settings.DODO_API_KEY else [{"name": "API key", "ok": False, "detail": "Not set in Render"}]
+    return render(request, "admin.html", **admin_context(pay_checks=checks))
 
 
 @app.post("/admin/login", response_class=HTMLResponse)
