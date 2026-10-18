@@ -1,0 +1,21 @@
+# Render Blueprint: free static site, no server needed.
+services:
+  - type: web
+    name: empressash
+    runtime: static
+    buildCommand: ""
+    staticPublishPath: ./public
+    pullRequestPreviewsEnabled: true
+    headers:
+      - path: /css/*
+        name: Cache-Control
+        value: public, max-age=604800
+      - path: /js/*
+        name: Cache-Control
+        value: public, max-age=3600
+      - path: /images/*
+        name: Cache-Control
+        value: public, max-age=2592000, immutable
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
