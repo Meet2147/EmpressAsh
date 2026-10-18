@@ -17,7 +17,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from itsdangerous import BadSignature, URLSafeTimedSerializer
 
-from . import catalog, db, dodo, settings, tarot
+from . import catalog, db, dodo, geo, settings, tarot
 
 log = logging.getLogger("empressash")
 logging.basicConfig(level=logging.INFO)
@@ -46,6 +46,7 @@ def render(request: Request, template: str, status: int = 200, **ctx):
         request=request,
         s=settings,
         catalog=catalog,
+        geo_currency=geo.currency(request),
         nav_page=ctx.get("nav_page", ""),
         year=datetime.date.today().year,
     )
@@ -179,7 +180,8 @@ def checkout_submit(request: Request, slug: str, format: str = Form(...), curren
     f = catalog.format_by_id(format)
     if not r or not f:
         return render(request, "404.html", status=404)
-    currency = "inr" if currency == "inr" else "usd"
+    # Location decides the currency; the browser's time zone guess is only used when it can't be told.
+    currency = geo.currency(request) or ("inr" if currency == "inr" else "usd")
     form = dict(name=clean(name, 80), email=clean(email, 120), phone=clean(phone, 25),
                 birthday=clean(birthday, 10), question=clean(question, 1500), currency=currency)
 

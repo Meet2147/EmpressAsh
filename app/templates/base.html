@@ -10,10 +10,10 @@
 <meta name="theme-color" content="#111A19">
 <link rel="icon" href="/static/images/favicon.svg" type="image/svg+xml">
 <script>
-  // Pick the currency before the page paints: INR in India, USD elsewhere.
+  // Currency comes from the visitor's location: INR in India, USD elsewhere.
+  // The server knows the location; the time zone is only a fallback when it doesn't.
   (function () {
-    var c = null;
-    try { c = localStorage.getItem("ea-currency"); } catch (e) {}
+    var c = {{ (geo_currency or "")|tojson }};
     if (c !== "inr" && c !== "usd") {
       var tz = "";
       try { tz = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}

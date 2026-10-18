@@ -9,7 +9,7 @@
       <div><p class="eyebrow">Readings &amp; prices</p><h1 class="page-title">Choose your spread</h1></div>
       {{ currency_switch() }}
     </div>
-    <p class="muted" style="max-width:720px">Every spread comes in three formats. Prices show in rupees for India and US dollars elsewhere; switch any time.{% if not s.LIVE_READINGS_OPEN %} Written readings are open now. Live video and voice sessions open soon.{% endif %}</p>
+    <p class="muted" style="max-width:720px">Every spread comes in three formats. Prices are in rupees in India and US dollars everywhere else, based on where you are.{% if not s.LIVE_READINGS_OPEN %} Written readings are open now. Live video and voice sessions open soon.{% endif %}</p>
     <div class="packages" style="margin:32px 0 48px">
       <div class="card"><p class="eyebrow">Premium{% if not s.LIVE_READINGS_OPEN %} · coming soon{% endif %}</p><h3>Video call + report</h3><ul><li>Private one-to-one video consultation for the listed duration</li><li>Live card interpretation and discussion of your question</li><li>Written summary with key insights and next steps within 48 hours</li></ul></div>
       <div class="card"><p class="eyebrow">Private{% if not s.LIVE_READINGS_OPEN %} · coming soon{% endif %}</p><h3>Voice call + report</h3><ul><li>Private audio consultation for the listed duration</li><li>The same depth of interpretation as video</li><li>Written summary within 48 hours</li></ul></div>
